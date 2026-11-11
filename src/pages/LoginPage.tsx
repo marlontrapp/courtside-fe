@@ -4,9 +4,12 @@ import { useForm } from 'react-hook-form'
 import { Navigate, useNavigate } from 'react-router-dom'
 import { z } from 'zod'
 
-import { ApiError } from '@/api/client'
 import { login } from '@/api/auth'
+import { ApiError } from '@/api/client'
 import { useAuth } from '@/auth/auth-context'
+import { Alert } from '@/components/Alert'
+import { Button } from '@/components/Button'
+import { TextField } from '@/components/TextField'
 
 const loginSchema = z.object({
   email: z.email('Enter a valid email'),
@@ -81,62 +84,34 @@ export function LoginPage() {
           className="fade-up mt-12 w-full max-w-md space-y-5 [animation-delay:120ms]"
           noValidate
         >
-          <div className="space-y-2">
-            <label htmlFor="email" className="block text-sm font-medium text-mist">
-              Email
-            </label>
-            <input
-              id="email"
-              type="email"
-              autoComplete="email"
-              className="w-full border border-line/20 bg-ink/40 px-4 py-3 text-line outline-none transition placeholder:text-fog focus:border-ball/70 focus:ring-2 focus:ring-ball/30"
-              placeholder="you@club.example"
-              {...register('email')}
-            />
-            {errors.email ? (
-              <p className="text-sm text-clay">{errors.email.message}</p>
-            ) : null}
-          </div>
+          <TextField
+            label="Email"
+            type="email"
+            autoComplete="email"
+            placeholder="you@club.example"
+            error={errors.email?.message}
+            {...register('email')}
+          />
 
-          <div className="space-y-2">
-            <label htmlFor="password" className="block text-sm font-medium text-mist">
-              Password
-            </label>
-            <input
-              id="password"
-              type="password"
-              autoComplete="current-password"
-              className="w-full border border-line/20 bg-ink/40 px-4 py-3 text-line outline-none transition placeholder:text-fog focus:border-ball/70 focus:ring-2 focus:ring-ball/30"
-              placeholder="••••••••"
-              {...register('password')}
-            />
-            {errors.password ? (
-              <p className="text-sm text-clay">{errors.password.message}</p>
-            ) : null}
-          </div>
+          <TextField
+            label="Password"
+            type="password"
+            autoComplete="current-password"
+            placeholder="••••••••"
+            error={errors.password?.message}
+            {...register('password')}
+          />
 
-          {errorMessage ? (
-            <p
-              role="alert"
-              className="border border-clay/40 bg-clay/10 px-3 py-2 text-sm text-mist"
-            >
-              {errorMessage}
-            </p>
-          ) : null}
+          {errorMessage ? <Alert>{errorMessage}</Alert> : null}
 
-          <button
+          <Button
             type="submit"
+            fullWidth
+            className="py-3.5"
             disabled={mutation.isPending || status === 'loading'}
-            className="group relative w-full overflow-hidden bg-ball px-4 py-3.5 text-sm font-semibold tracking-wide text-ink uppercase transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            <span className="relative z-10">
-              {mutation.isPending ? 'Signing in…' : 'Sign in'}
-            </span>
-            <span
-              aria-hidden
-              className="absolute inset-y-0 left-0 w-0 bg-white/25 transition-all duration-500 group-hover:w-full"
-            />
-          </button>
+            {mutation.isPending ? 'Signing in…' : 'Sign in'}
+          </Button>
         </form>
       </div>
     </main>
