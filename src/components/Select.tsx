@@ -9,6 +9,7 @@ import {
 } from 'react'
 
 import { cn } from '@/components/cn'
+import { Spinner } from '@/components/Spinner'
 
 export type SelectOption = {
   value: string
@@ -19,13 +20,34 @@ export type SelectOption = {
 type SelectBaseProps = {
   id?: string
   label: string
+  /** Current option list (local catalog, or results from a backend search). */
   options: SelectOption[]
   placeholder?: string
   /** Keep a way to clear the selection (default true when placeholder is set). */
   clearable?: boolean
-  /** Filter options by label while the menu is open (default true). */
+  /** Show the search field (default true). */
   searchable?: boolean
   searchPlaceholder?: string
+  /**
+   * Called when the search query changes (debounced). Use this to hit a backend
+   * and pass matching rows back via `options`.
+   */
+  onSearchChange?: (query: string) => void
+  /**
+   * When true, also filter `options` by label on the client.
+   * Defaults to `true` for local lists, and `false` when `onSearchChange` is set
+   * (so the server owns filtering).
+   */
+  filterLocally?: boolean
+  /** Debounce for `onSearchChange` in ms (default 300 when async search is used). */
+  searchDebounceMs?: number
+  /** Show a loading row while backend results are in flight. */
+  loading?: boolean
+  /**
+   * Extra options used only to resolve labels for selected values that may be
+   * missing from the current (search-result) `options` list.
+   */
+  selectedOptions?: SelectOption[]
   error?: ReactNode
   hint?: ReactNode
   className?: string
@@ -46,19 +68,33 @@ export type SelectMultipleProps = SelectBaseProps & {
 
 export type SelectProps = SelectSingleProps | SelectMultipleProps
 
-function optionLabel(options: SelectOption[], value: string): string {
-  return options.find((option) => option.value === value)?.label ?? value
+function optionLabel(
+  options: SelectOption[],
+  selectedOptions: SelectOption[] | undefined,
+  labels: Map<string, string>,
+  value: string,
+): string {
+  return (
+    labels.get(value) ??
+    selectedOptions?.find((option) => option.value === value)?.label ??
+    options.find((option) => option.value === value)?.label ??
+    value
+  )
 }
 
 function summarizeSelection(
   options: SelectOption[],
+  selectedOptions: SelectOption[] | undefined,
+  labels: Map<string, string>,
   values: readonly string[],
   placeholder: string,
 ): string {
   if (values.length === 0) return placeholder
-  if (values.length === 1) return optionLabel(options, values[0])
+  if (values.length === 1) {
+    return optionLabel(options, selectedOptions, labels, values[0])
+  }
   if (values.length === 2) {
-    return `${optionLabel(options, values[0])}, ${optionLabel(options, values[1])}`
+    return `${optionLabel(options, selectedOptions, labels, values[0])}, ${optionLabel(options, selectedOptions, labels, values[1])}`
   }
   return `${values.length} selected`
 }
@@ -72,6 +108,11 @@ export function Select(props: SelectProps) {
     clearable = Boolean(props.placeholder),
     searchable = true,
     searchPlaceholder = 'Search…',
+    onSearchChange,
+    filterLocally = onSearchChange ? false : true,
+    searchDebounceMs = onSearchChange ? 300 : 0,
+    loading = false,
+    selectedOptions,
     error,
     hint,
     className,
@@ -87,17 +128,38 @@ export function Select(props: SelectProps) {
 
   const rootRef = useRef<HTMLDivElement>(null)
   const searchRef = useRef<HTMLInputElement>(null)
+  const labelsRef = useRef<Map<string, string>>(new Map())
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
   const [activeIndex, setActiveIndex] = useState(0)
 
   const selectedValues = multiple ? props.value : props.value ? [props.value] : []
 
+  useEffect(() => {
+    for (const option of options) {
+      labelsRef.current.set(option.value, option.label)
+    }
+    for (const option of selectedOptions ?? []) {
+      labelsRef.current.set(option.value, option.label)
+    }
+  }, [options, selectedOptions])
+
   const filtered = useMemo(() => {
+    if (!filterLocally) return options
     const needle = query.trim().toLowerCase()
     if (!needle) return options
     return options.filter((option) => option.label.toLowerCase().includes(needle))
-  }, [options, query])
+  }, [options, query, filterLocally])
+
+  useEffect(() => {
+    if (!open || !onSearchChange) return
+
+    const handle = window.setTimeout(() => {
+      onSearchChange(query)
+    }, searchDebounceMs)
+
+    return () => window.clearTimeout(handle)
+  }, [open, onSearchChange, query, searchDebounceMs])
 
   useEffect(() => {
     if (!open) return
@@ -133,13 +195,27 @@ export function Select(props: SelectProps) {
     setQuery('')
     setActiveIndex(0)
     setOpen(true)
+    onSearchChange?.('')
   }
 
-  const displayValue = summarizeSelection(options, selectedValues, placeholder)
+  const displayValue = summarizeSelection(
+    options,
+    selectedOptions,
+    labelsRef.current,
+    selectedValues,
+    placeholder,
+  )
 
   const selectValue = (next: string) => {
-    const option = options.find((item) => item.value === next)
-    if (!option || option.disabled) return
+    const option =
+      options.find((item) => item.value === next) ??
+      selectedOptions?.find((item) => item.value === next)
+    if (option?.disabled) return
+    if (!option && !labelsRef.current.has(next)) return
+
+    if (option) {
+      labelsRef.current.set(option.value, option.label)
+    }
 
     if (multiple) {
       const exists = props.value.includes(next)
@@ -202,6 +278,7 @@ export function Select(props: SelectProps) {
           aria-controls={listboxId}
           aria-invalid={error ? true : undefined}
           aria-describedby={error ? errorId : hint ? hintId : undefined}
+          aria-busy={loading || undefined}
           onClick={() => {
             if (disabled) return
             if (open) {
@@ -269,57 +346,65 @@ export function Select(props: SelectProps) {
               </div>
             ) : null}
 
-            <ul
-              id={listboxId}
-              role="listbox"
-              aria-multiselectable={multiple || undefined}
-              aria-label={label}
-              className="max-h-60 overflow-auto py-1"
-            >
-              {filtered.length === 0 ? (
-                <li className="px-4 py-3 text-sm text-fog">No matches</li>
-              ) : (
-                filtered.map((option, index) => {
-                  const selected = selectedValues.includes(option.value)
-                  const active = index === activeIndex
-                  return (
-                    <li key={option.value} role="none">
-                      <button
-                        type="button"
-                        role="option"
-                        aria-selected={selected}
-                        disabled={option.disabled}
-                        className={cn(
-                          'flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm transition disabled:opacity-40',
-                          active ? 'bg-line/10 text-line' : 'text-mist hover:bg-line/5 hover:text-line',
-                          selected && 'text-ball',
-                        )}
-                        onMouseEnter={() => setActiveIndex(index)}
-                        onClick={() => selectValue(option.value)}
-                      >
-                        {multiple ? (
-                          <span
-                            aria-hidden
-                            className={cn(
-                              'flex h-4 w-4 shrink-0 items-center justify-center border border-line/30',
-                              selected && 'border-ball bg-ball text-ink',
-                            )}
-                          >
-                            {selected ? '✓' : null}
-                          </span>
-                        ) : null}
-                        <span className="min-w-0 flex-1 truncate">{option.label}</span>
-                        {!multiple && selected ? (
-                          <span aria-hidden className="text-ball">
-                            ✓
-                          </span>
-                        ) : null}
-                      </button>
-                    </li>
-                  )
-                })
-              )}
-            </ul>
+            {loading ? (
+              <div className="px-4 py-3">
+                <Spinner label="Searching…" />
+              </div>
+            ) : (
+              <ul
+                id={listboxId}
+                role="listbox"
+                aria-multiselectable={multiple || undefined}
+                aria-label={label}
+                className="max-h-60 overflow-auto py-1"
+              >
+                {filtered.length === 0 ? (
+                  <li className="px-4 py-3 text-sm text-fog">No matches</li>
+                ) : (
+                  filtered.map((option, index) => {
+                    const selected = selectedValues.includes(option.value)
+                    const active = index === activeIndex
+                    return (
+                      <li key={option.value} role="none">
+                        <button
+                          type="button"
+                          role="option"
+                          aria-selected={selected}
+                          disabled={option.disabled}
+                          className={cn(
+                            'flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm transition disabled:opacity-40',
+                            active
+                              ? 'bg-line/10 text-line'
+                              : 'text-mist hover:bg-line/5 hover:text-line',
+                            selected && 'text-ball',
+                          )}
+                          onMouseEnter={() => setActiveIndex(index)}
+                          onClick={() => selectValue(option.value)}
+                        >
+                          {multiple ? (
+                            <span
+                              aria-hidden
+                              className={cn(
+                                'flex h-4 w-4 shrink-0 items-center justify-center border border-line/30',
+                                selected && 'border-ball bg-ball text-ink',
+                              )}
+                            >
+                              {selected ? '✓' : null}
+                            </span>
+                          ) : null}
+                          <span className="min-w-0 flex-1 truncate">{option.label}</span>
+                          {!multiple && selected ? (
+                            <span aria-hidden className="text-ball">
+                              ✓
+                            </span>
+                          ) : null}
+                        </button>
+                      </li>
+                    )
+                  })
+                )}
+              </ul>
+            )}
           </div>
         ) : null}
       </div>
