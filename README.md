@@ -51,6 +51,18 @@ Superuser: `admin@example.com` / `admin123`
 | `npm run preview` | Preview production build |
 | `npm run lint` | Oxlint               |
 | `npm run format` | Prettier write     |
+| `npm run storybook` | Component Storybook on :6006 |
+| `npm run build-storybook` | Static Storybook build |
+
+## Storybook
+
+Reusable UI lives in `src/components/` and is documented in Storybook (Courtside tokens + dark ink canvas):
+
+```bash
+npm run storybook
+```
+
+Open http://localhost:6006
 
 ## Project layout
 
@@ -58,7 +70,9 @@ Superuser: `admin@example.com` / `admin123`
 src/
   api/          # fetch client + session auth helpers
   auth/         # AuthProvider + RequireAuth
+  components/   # Shared UI primitives + *.stories.tsx
   layout/       # Authenticated app shell + side nav
   pages/        # Login, home, Clubs/Players/Courts placeholders
   App.tsx       # Router + providers
+.storybook/     # Storybook Vite config + preview decorators
 ```
