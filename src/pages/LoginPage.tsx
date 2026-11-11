@@ -69,7 +69,7 @@ export function LoginPage() {
       <div className="relative mx-auto flex min-h-dvh w-full max-w-6xl flex-col justify-center px-6 py-16 sm:px-10 lg:px-16">
         <div className="fade-up max-w-xl">
           <h1 className="font-display text-5xl leading-[1.05] tracking-tight text-line sm:text-6xl lg:text-7xl">
-            CourtControl
+            Courtside
           </h1>
           <p className="mt-5 max-w-md text-base leading-relaxed text-mist sm:text-lg">
             Sign in to book courts, manage clubs, and keep your schedule on the line.
