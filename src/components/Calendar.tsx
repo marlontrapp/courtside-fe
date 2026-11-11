@@ -45,7 +45,7 @@ export function Calendar({
   )
 
   const days = useMemo(() => buildMonthGrid(visibleMonth), [visibleMonth])
-  const todayIso = useMemo(() => toISODate(new Date()), [])
+  const [todayIso] = useState(() => toISODate(new Date()))
 
   return (
     <div className={cn('w-full max-w-sm border border-line/20 bg-ink/40 p-4', className)}>
