@@ -55,7 +55,8 @@
   .court-grid {
     --court-w: 216px;
     --court-h: 468px;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='216' height='468' fill='none' stroke='rgba(232,242,234,0.14)' stroke-width='1'%3E%3Crect x='0.5' y='0.5' width='215' height='467'/%3E%3Cline x1='27' y1='0' x2='27' y2='468'/%3E%3Cline x1='189' y1='0' x2='189' y2='468'/%3E%3Cline x1='0' y1='108' x2='216' y2='108'/%3E%3Cline x1='0' y1='234' x2='216' y2='234'/%3E%3Cline x1='0' y1='360' x2='216' y2='360'/%3E%3Cline x1='108' y1='108' x2='108' y2='360'/%3E%3Cline x1='96' y1='0.5' x2='120' y2='0.5'/%3E%3Cline x1='96' y1='467.5' x2='120' y2='467.5'/%3E%3C/svg%3E");
+    /* Service lines stop at singles sidelines — they do not cross the doubles alleys. */
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='216' height='468' fill='none' stroke='rgba(232,242,234,0.14)' stroke-width='1'%3E%3Crect x='0.5' y='0.5' width='215' height='467'/%3E%3Cline x1='27' y1='0' x2='27' y2='468'/%3E%3Cline x1='189' y1='0' x2='189' y2='468'/%3E%3Cline x1='27' y1='108' x2='189' y2='108'/%3E%3Cline x1='0' y1='234' x2='216' y2='234'/%3E%3Cline x1='27' y1='360' x2='189' y2='360'/%3E%3Cline x1='108' y1='108' x2='108' y2='360'/%3E%3Cline x1='96' y1='0.5' x2='120' y2='0.5'/%3E%3Cline x1='96' y1='467.5' x2='120' y2='467.5'/%3E%3C/svg%3E");
     background-size: var(--court-w) var(--court-h);
     background-repeat: repeat;
   }
