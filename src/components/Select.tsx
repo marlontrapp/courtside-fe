@@ -37,31 +37,45 @@ export function Select({
       <label htmlFor={fieldId} className="block text-sm font-medium text-mist">
         {label}
       </label>
-      <select
-        id={fieldId}
-        aria-invalid={error ? true : undefined}
-        aria-describedby={error ? errorId : hint ? hintId : undefined}
-        className={cn(
-          'w-full appearance-none border border-line/20 bg-ink/40 bg-[length:1rem] bg-[right_0.85rem_center] bg-no-repeat px-4 py-3 pr-10 text-line outline-none transition focus:border-ball/70 focus:ring-2 focus:ring-ball/30',
-          error ? 'border-clay/50 focus:border-clay/70 focus:ring-clay/20' : null,
-          className,
-        )}
-        style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%239bb5a6' stroke-width='1.5'%3E%3Cpath d='M4 6l4 4 4-4'/%3E%3C/svg%3E")`,
-        }}
-        {...props}
-      >
-        {placeholder ? (
-          <option value="" disabled>
-            {placeholder}
-          </option>
-        ) : null}
-        {options.map((option) => (
-          <option key={option.value} value={option.value} disabled={option.disabled}>
-            {option.label}
-          </option>
-        ))}
-      </select>
+      <div className="relative">
+        <select
+          id={fieldId}
+          aria-invalid={error ? true : undefined}
+          aria-describedby={error ? errorId : hint ? hintId : undefined}
+          className={cn(
+            'w-full appearance-none border border-line/20 bg-ink/40 px-4 py-3 pr-10 text-line outline-none transition focus:border-ball/70 focus:ring-2 focus:ring-ball/30',
+            'scheme-dark [&>option]:bg-ink [&>option]:text-line',
+            error ? 'border-clay/50 focus:border-clay/70 focus:ring-clay/20' : null,
+            className,
+          )}
+          {...props}
+        >
+          {placeholder ? (
+            <option value="" disabled>
+              {placeholder}
+            </option>
+          ) : null}
+          {options.map((option) => (
+            <option key={option.value} value={option.value} disabled={option.disabled}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+        <span
+          aria-hidden
+          className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-fog"
+        >
+          <svg
+            viewBox="0 0 16 16"
+            className="h-4 w-4"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.5"
+          >
+            <path d="M4 6l4 4 4-4" />
+          </svg>
+        </span>
+      </div>
       {error ? (
         <p id={errorId} className="text-sm text-clay">
           {error}
