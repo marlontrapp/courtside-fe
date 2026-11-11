@@ -13,18 +13,25 @@ export default meta
 type Story = StoryObj
 
 export const SelectDefault: Story = {
-  render: () => (
-    <Select
-      label="Surface"
-      placeholder="Any surface"
-      defaultValue=""
-      options={[
-        { value: 'clay', label: 'Clay' },
-        { value: 'hard', label: 'Hard' },
-        { value: 'grass', label: 'Grass' },
-      ]}
-    />
-  ),
+  render: function Render() {
+    const [value, setValue] = useState('')
+    return (
+      <div className="space-y-3">
+        <Select
+          label="Surface"
+          placeholder="Any surface"
+          value={value}
+          onChange={(event) => setValue(event.target.value)}
+          options={[
+            { value: 'clay', label: 'Clay' },
+            { value: 'hard', label: 'Hard' },
+            { value: 'grass', label: 'Grass' },
+          ]}
+        />
+        <p className="text-sm text-fog">Value: {value || '(none)'}</p>
+      </div>
+    )
+  },
 }
 
 export const TextAreaDefault: Story = {

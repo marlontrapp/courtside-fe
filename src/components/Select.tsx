@@ -13,6 +13,11 @@ export type SelectProps = Omit<SelectHTMLAttributes<HTMLSelectElement>, 'id'> & 
   label: string
   options: SelectOption[]
   placeholder?: string
+  /**
+   * When true (default if `placeholder` is set), the empty placeholder option
+   * stays selectable so the field can be cleared after a choice.
+   */
+  clearable?: boolean
   error?: ReactNode
   hint?: ReactNode
 }
@@ -22,6 +27,7 @@ export function Select({
   label,
   options,
   placeholder,
+  clearable = Boolean(placeholder),
   error,
   hint,
   className,
@@ -51,7 +57,7 @@ export function Select({
           {...props}
         >
           {placeholder ? (
-            <option value="" disabled>
+            <option value="" disabled={!clearable}>
               {placeholder}
             </option>
           ) : null}
