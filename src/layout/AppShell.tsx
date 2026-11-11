@@ -65,7 +65,7 @@ export function AppShell() {
               <p id={titleId} className="text-xs font-medium tracking-[0.28em] text-ball uppercase">
                 Courtside
               </p>
-              <p className="mt-1 text-sm text-fog">Find your way around</p>
+              <p className="mt-1 text-sm text-fog">Clubs, players &amp; courts</p>
             </div>
             <button
               type="button"
