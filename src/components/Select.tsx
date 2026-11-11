@@ -69,32 +69,21 @@ export type SelectMultipleProps = SelectBaseProps & {
 export type SelectProps = SelectSingleProps | SelectMultipleProps
 
 function optionLabel(
-  options: SelectOption[],
-  selectedOptions: SelectOption[] | undefined,
-  labels: Map<string, string>,
+  labels: Record<string, string>,
   value: string,
 ): string {
-  return (
-    labels.get(value) ??
-    selectedOptions?.find((option) => option.value === value)?.label ??
-    options.find((option) => option.value === value)?.label ??
-    value
-  )
+  return labels[value] ?? value
 }
 
 function summarizeSelection(
-  options: SelectOption[],
-  selectedOptions: SelectOption[] | undefined,
-  labels: Map<string, string>,
+  labels: Record<string, string>,
   values: readonly string[],
   placeholder: string,
 ): string {
   if (values.length === 0) return placeholder
-  if (values.length === 1) {
-    return optionLabel(options, selectedOptions, labels, values[0])
-  }
+  if (values.length === 1) return optionLabel(labels, values[0])
   if (values.length === 2) {
-    return `${optionLabel(options, selectedOptions, labels, values[0])}, ${optionLabel(options, selectedOptions, labels, values[1])}`
+    return `${optionLabel(labels, values[0])}, ${optionLabel(labels, values[1])}`
   }
   return `${values.length} selected`
 }
@@ -128,21 +117,19 @@ export function Select(props: SelectProps) {
 
   const rootRef = useRef<HTMLDivElement>(null)
   const searchRef = useRef<HTMLInputElement>(null)
-  const labelsRef = useRef<Map<string, string>>(new Map())
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
   const [activeIndex, setActiveIndex] = useState(0)
+  const [rememberedLabels, setRememberedLabels] = useState<Record<string, string>>({})
 
   const selectedValues = multiple ? props.value : props.value ? [props.value] : []
 
-  useEffect(() => {
-    for (const option of options) {
-      labelsRef.current.set(option.value, option.label)
-    }
-    for (const option of selectedOptions ?? []) {
-      labelsRef.current.set(option.value, option.label)
-    }
-  }, [options, selectedOptions])
+  const labels = useMemo(() => {
+    const next = { ...rememberedLabels }
+    for (const option of options) next[option.value] = option.label
+    for (const option of selectedOptions ?? []) next[option.value] = option.label
+    return next
+  }, [options, selectedOptions, rememberedLabels])
 
   const filtered = useMemo(() => {
     if (!filterLocally) return options
@@ -198,23 +185,17 @@ export function Select(props: SelectProps) {
     onSearchChange?.('')
   }
 
-  const displayValue = summarizeSelection(
-    options,
-    selectedOptions,
-    labelsRef.current,
-    selectedValues,
-    placeholder,
-  )
+  const displayValue = summarizeSelection(labels, selectedValues, placeholder)
 
   const selectValue = (next: string) => {
     const option =
       options.find((item) => item.value === next) ??
       selectedOptions?.find((item) => item.value === next)
     if (option?.disabled) return
-    if (!option && !labelsRef.current.has(next)) return
+    if (!option && !(next in labels)) return
 
     if (option) {
-      labelsRef.current.set(option.value, option.label)
+      setRememberedLabels((current) => ({ ...current, [option.value]: option.label }))
     }
 
     if (multiple) {
