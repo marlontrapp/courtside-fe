@@ -10,6 +10,13 @@ export { Divider, type DividerProps } from '@/components/Divider'
 export { EmptyState, type EmptyStateProps } from '@/components/EmptyState'
 export { Modal, type ModalProps } from '@/components/Modal'
 export { PageHeader, type PageHeaderProps } from '@/components/PageHeader'
+export {
+  FilterGroup,
+  type FilterGroupMultipleProps,
+  type FilterGroupProps,
+  type FilterGroupSingleProps,
+  type FilterOption,
+} from '@/components/FilterGroup'
 export { SegmentedControl, type SegmentedControlProps, type SegmentOption } from '@/components/SegmentedControl'
 export { Select, type SelectOption, type SelectProps } from '@/components/Select'
 export { Spinner, type SpinnerProps } from '@/components/Spinner'

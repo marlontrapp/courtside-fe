@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import type { Meta, StoryObj } from '@storybook/react-vite'
 
-import { SegmentedControl } from '@/components/SegmentedControl'
+import { FilterGroup } from '@/components/FilterGroup'
 import { TimeSlot } from '@/components/TimeSlot'
 
 const meta = {
@@ -11,11 +11,13 @@ const meta = {
 export default meta
 type Story = StoryObj
 
-export const SurfaceFilter: Story = {
+export const SingleFilter: Story = {
+  name: 'Filter · single',
   render: function Render() {
     const [value, setValue] = useState('all')
     return (
-      <SegmentedControl
+      <FilterGroup
+        label="Surface"
         aria-label="Surface"
         value={value}
         onChange={setValue}
@@ -24,6 +26,53 @@ export const SurfaceFilter: Story = {
           { value: 'clay', label: 'Clay' },
           { value: 'hard', label: 'Hard' },
           { value: 'grass', label: 'Grass' },
+        ]}
+      />
+    )
+  },
+}
+
+export const MultiFilter: Story = {
+  name: 'Filter · multiple',
+  render: function Render() {
+    const [value, setValue] = useState<string[]>(['clay', 'hard'])
+    return (
+      <div className="space-y-3">
+        <FilterGroup
+          multiple
+          label="Surfaces"
+          aria-label="Surfaces"
+          exclusiveValue="all"
+          value={value}
+          onChange={setValue}
+          options={[
+            { value: 'all', label: 'All' },
+            { value: 'clay', label: 'Clay' },
+            { value: 'hard', label: 'Hard' },
+            { value: 'grass', label: 'Grass' },
+          ]}
+        />
+        <p className="text-sm text-fog">Selected: {value.join(', ') || 'none'}</p>
+      </div>
+    )
+  },
+}
+
+export const MultiFilterAmenities: Story = {
+  name: 'Filter · amenities',
+  render: function Render() {
+    const [value, setValue] = useState<string[]>(['lighting'])
+    return (
+      <FilterGroup
+        multiple
+        label="Amenities"
+        aria-label="Amenities"
+        value={value}
+        onChange={setValue}
+        options={[
+          { value: 'lighting', label: 'Lighting' },
+          { value: 'indoor', label: 'Indoor' },
+          { value: 'covered', label: 'Covered' },
         ]}
       />
     )

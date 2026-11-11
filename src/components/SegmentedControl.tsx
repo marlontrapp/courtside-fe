@@ -1,53 +1,16 @@
-import { cn } from '@/components/cn'
+import {
+  FilterGroup,
+  type FilterGroupSingleProps,
+  type FilterOption,
+} from '@/components/FilterGroup'
 
-export type SegmentOption<T extends string = string> = {
-  value: T
-  label: string
-  disabled?: boolean
-}
+/** @deprecated Prefer `FilterGroup` — kept as a single-select alias. */
+export type SegmentOption<T extends string = string> = FilterOption<T>
 
-export type SegmentedControlProps<T extends string = string> = {
-  options: SegmentOption<T>[]
-  value: T
-  onChange: (value: T) => void
-  'aria-label': string
-  className?: string
-}
+/** @deprecated Prefer `FilterGroup` — kept as a single-select alias. */
+export type SegmentedControlProps<T extends string = string> = FilterGroupSingleProps<T>
 
-export function SegmentedControl<T extends string = string>({
-  options,
-  value,
-  onChange,
-  'aria-label': ariaLabel,
-  className,
-}: SegmentedControlProps<T>) {
-  return (
-    <div
-      role="radiogroup"
-      aria-label={ariaLabel}
-      className={cn('inline-flex flex-wrap border border-line/20', className)}
-    >
-      {options.map((option) => {
-        const selected = option.value === value
-        return (
-          <button
-            key={option.value}
-            type="button"
-            role="radio"
-            aria-checked={selected}
-            disabled={option.disabled}
-            onClick={() => onChange(option.value)}
-            className={cn(
-              'px-3 py-2 text-xs font-medium tracking-wide uppercase transition disabled:opacity-40',
-              selected
-                ? 'bg-ball/15 text-ball'
-                : 'text-mist hover:bg-line/5 hover:text-line',
-            )}
-          >
-            {option.label}
-          </button>
-        )
-      })}
-    </div>
-  )
+/** Single-select filter chips. For multi-select use `FilterGroup` with `multiple`. */
+export function SegmentedControl<T extends string = string>(props: SegmentedControlProps<T>) {
+  return <FilterGroup {...props} multiple={false} />
 }
