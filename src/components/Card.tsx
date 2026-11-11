@@ -43,8 +43,8 @@ export function SelectableCard({
       type={type}
       aria-pressed={selected}
       className={cn(
-        'w-full border border-line/20 bg-ink/30 p-4 text-left transition hover:border-line/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ball/30',
-        selected && 'border-ball bg-ball/10',
+        'w-full cursor-pointer border border-line/20 border-l-2 border-l-transparent bg-ink/30 p-4 text-left transition hover:border-line/40 hover:border-l-line/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ball/30',
+        selected && 'border-ball border-l-ball bg-ball/10',
         className,
       )}
       {...props}
