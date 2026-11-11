@@ -69,10 +69,13 @@ export function AppShell() {
             </div>
             <button
               type="button"
-              className="border border-line/20 px-2.5 py-1.5 text-xs tracking-wide text-mist uppercase transition hover:border-ball hover:text-ball md:hidden"
+              aria-label="Close menu"
+              className="inline-flex items-center justify-center border border-line/20 px-2.5 py-1.5 text-mist transition hover:border-ball hover:text-ball md:hidden"
               onClick={closeMenu}
             >
-              Close
+              <span aria-hidden className="text-base leading-none tracking-tight">
+                {'<<'}
+              </span>
             </button>
           </div>
 
@@ -118,12 +121,23 @@ export function AppShell() {
           <header className="sticky top-0 z-20 flex items-center gap-3 border-b border-line/10 bg-ink/80 px-4 py-3 backdrop-blur-sm md:hidden">
             <button
               type="button"
+              aria-label="Open menu"
               aria-expanded={menuOpen}
               aria-controls="app-side-nav"
-              className="border border-line/20 px-3 py-2 text-xs font-medium tracking-wide text-line uppercase transition hover:border-ball hover:text-ball"
+              className="inline-flex items-center justify-center border border-line/20 p-2 text-line transition hover:border-ball hover:text-ball"
               onClick={() => setMenuOpen(true)}
             >
-              Menu
+              <svg
+                aria-hidden
+                viewBox="0 0 24 24"
+                className="h-5 w-5"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.75"
+                strokeLinecap="square"
+              >
+                <path d="M4 7h16M4 12h16M4 17h16" />
+              </svg>
             </button>
             <p className="text-xs font-medium tracking-[0.24em] text-ball uppercase">
               Courtside
