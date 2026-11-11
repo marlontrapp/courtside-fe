@@ -76,34 +76,6 @@
   .animate-racket-swing {
     animation: racket-swing 1.1s ease-in-out infinite;
   }
-
-  .animate-player-bob {
-    animation: player-bob 0.7s ease-in-out infinite;
-  }
-
-  .animate-player-leg-front {
-    transform-box: fill-box;
-    transform-origin: top center;
-    animation: player-leg-front 0.7s ease-in-out infinite;
-  }
-
-  .animate-player-leg-back {
-    transform-box: fill-box;
-    transform-origin: top center;
-    animation: player-leg-back 0.7s ease-in-out infinite;
-  }
-
-  .animate-player-arm-front {
-    transform-box: fill-box;
-    transform-origin: top center;
-    animation: player-arm-front 0.7s ease-in-out infinite;
-  }
-
-  .animate-player-arm-back {
-    transform-box: fill-box;
-    transform-origin: top center;
-    animation: player-arm-back 0.7s ease-in-out infinite;
-  }
 }
 
 @keyframes fade-up {
@@ -143,55 +115,5 @@
   }
   50% {
     transform: rotate(28deg);
-  }
-}
-
-@keyframes player-bob {
-  0%,
-  100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-1.5px);
-  }
-}
-
-@keyframes player-leg-front {
-  0%,
-  100% {
-    transform: rotate(22deg);
-  }
-  50% {
-    transform: rotate(-26deg);
-  }
-}
-
-@keyframes player-leg-back {
-  0%,
-  100% {
-    transform: rotate(-22deg);
-  }
-  50% {
-    transform: rotate(26deg);
-  }
-}
-
-@keyframes player-arm-front {
-  0%,
-  100% {
-    transform: rotate(-18deg);
-  }
-  50% {
-    transform: rotate(20deg);
-  }
-}
-
-@keyframes player-arm-back {
-  0%,
-  100% {
-    transform: rotate(18deg);
-  }
-  50% {
-    transform: rotate(-20deg);
   }
 }
