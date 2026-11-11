@@ -57,7 +57,8 @@ Superuser: `admin@example.com` / `admin123`
 ```
 src/
   api/          # fetch client + session auth helpers
-  auth/         # AuthProvider (session probe)
-  pages/        # Login + placeholder home
+  auth/         # AuthProvider + RequireAuth
+  layout/       # Authenticated app shell + side nav
+  pages/        # Login, home, Clubs/Players/Courts placeholders
   App.tsx       # Router + providers
 ```
