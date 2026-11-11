@@ -40,7 +40,7 @@ export function AppShell() {
         aria-hidden
         className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(31,122,85,0.28),transparent_55%),linear-gradient(180deg,#07150f,#0c3b2a)]"
       />
-      <div aria-hidden className="court-grid pointer-events-none absolute inset-0 opacity-25" />
+      <div aria-hidden className="court-grid pointer-events-none absolute inset-0 opacity-40" />
 
       <div className="relative flex min-h-dvh">
         {menuOpen ? (

@@ -48,11 +48,69 @@
 }
 
 @layer utilities {
+  /*
+   * Repeating tennis-court outline (doubles), scaled ~6px per foot.
+   * Tile = 36ft × 78ft with baselines, net, service lines, singles
+   * sidelines, and the center service line between the service boxes.
+   */
   .court-grid {
+    --court-line: rgba(232, 242, 234, 0.16);
+    --court-unit: 6px;
+    --court-w: calc(36 * var(--court-unit));
+    --court-h: calc(78 * var(--court-unit));
+    --court-alley: calc(4.5 * var(--court-unit));
+    --court-singles: calc(27 * var(--court-unit));
+    --court-half: calc(18 * var(--court-unit));
+    --court-service: calc(18 * var(--court-unit));
+    --court-net: calc(39 * var(--court-unit));
+    --court-service-far: calc(60 * var(--court-unit));
+    --court-center-len: calc(42 * var(--court-unit));
+
     background-image:
-      linear-gradient(rgba(232, 242, 234, 0.08) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(232, 242, 234, 0.08) 1px, transparent 1px);
-    background-size: 72px 72px;
+      /* baselines + net + service lines (horizontal) */
+      linear-gradient(var(--court-line), var(--court-line)),
+      linear-gradient(var(--court-line), var(--court-line)),
+      linear-gradient(var(--court-line), var(--court-line)),
+      linear-gradient(var(--court-line), var(--court-line)),
+      linear-gradient(var(--court-line), var(--court-line)),
+      /* doubles sidelines */
+      linear-gradient(var(--court-line), var(--court-line)),
+      linear-gradient(var(--court-line), var(--court-line)),
+      /* singles sidelines */
+      linear-gradient(var(--court-line), var(--court-line)),
+      linear-gradient(var(--court-line), var(--court-line)),
+      /* center service line (service line ↔ service line through net) */
+      linear-gradient(var(--court-line), var(--court-line)),
+      /* short center mark on each baseline */
+      linear-gradient(var(--court-line), var(--court-line)),
+      linear-gradient(var(--court-line), var(--court-line));
+    background-size:
+      var(--court-w) 1px,
+      var(--court-w) 1px,
+      var(--court-w) 1px,
+      var(--court-w) 1px,
+      var(--court-w) 1px,
+      1px var(--court-h),
+      1px var(--court-h),
+      1px var(--court-h),
+      1px var(--court-h),
+      1px var(--court-center-len),
+      calc(2 * var(--court-unit)) 1px,
+      calc(2 * var(--court-unit)) 1px;
+    background-position:
+      0 0,
+      0 var(--court-service),
+      0 var(--court-net),
+      0 var(--court-service-far),
+      0 calc(var(--court-h) - 1px),
+      0 0,
+      calc(var(--court-w) - 1px) 0,
+      var(--court-alley) 0,
+      calc(var(--court-alley) + var(--court-singles) - 1px) 0,
+      var(--court-half) var(--court-service),
+      calc(var(--court-half) - var(--court-unit)) 0,
+      calc(var(--court-half) - var(--court-unit)) calc(var(--court-h) - 1px);
+    background-repeat: repeat;
   }
 
   .fade-up {
