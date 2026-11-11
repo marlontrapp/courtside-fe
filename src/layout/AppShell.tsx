@@ -60,23 +60,11 @@ export function AppShell() {
             menuOpen ? 'translate-x-0' : '-translate-x-full',
           ].join(' ')}
         >
-          <div className="flex items-center justify-between gap-3 border-b border-line/10 px-5 py-5">
-            <div>
-              <p id={titleId} className="text-xs font-medium tracking-[0.28em] text-ball uppercase">
-                Courtside
-              </p>
-              <p className="mt-1 text-sm text-fog">Clubs, players &amp; courts</p>
-            </div>
-            <button
-              type="button"
-              aria-label="Close menu"
-              className="inline-flex items-center justify-center border border-line/20 px-2.5 py-1.5 text-mist transition hover:border-ball hover:text-ball md:hidden"
-              onClick={closeMenu}
-            >
-              <span aria-hidden className="text-base leading-none tracking-tight">
-                {'<<'}
-              </span>
-            </button>
+          <div className="border-b border-line/10 px-5 py-5">
+            <p id={titleId} className="text-xs font-medium tracking-[0.28em] text-ball uppercase">
+              Courtside
+            </p>
+            <p className="mt-1 text-sm text-fog">Clubs, players &amp; courts</p>
           </div>
 
           <nav aria-label="Main" className="flex flex-1 flex-col gap-1 px-3 py-4">
