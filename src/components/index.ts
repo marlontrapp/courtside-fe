@@ -18,7 +18,13 @@ export {
   type FilterOption,
 } from '@/components/FilterGroup'
 export { SegmentedControl, type SegmentedControlProps, type SegmentOption } from '@/components/SegmentedControl'
-export { Select, type SelectOption, type SelectProps } from '@/components/Select'
+export {
+  Select,
+  type SelectMultipleProps,
+  type SelectOption,
+  type SelectProps,
+  type SelectSingleProps,
+} from '@/components/Select'
 export { Spinner, type SpinnerProps } from '@/components/Spinner'
 export { TextArea, type TextAreaProps } from '@/components/TextArea'
 export { TextField, type TextFieldProps } from '@/components/TextField'
