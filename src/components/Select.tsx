@@ -125,12 +125,15 @@ export function Select(props: SelectProps) {
   }, [open])
 
   useEffect(() => {
-    if (!open) return
-    setActiveIndex(0)
-    if (searchable) {
-      queueMicrotask(() => searchRef.current?.focus())
-    }
+    if (!open || !searchable) return
+    queueMicrotask(() => searchRef.current?.focus())
   }, [open, searchable])
+
+  const openMenu = () => {
+    setQuery('')
+    setActiveIndex(0)
+    setOpen(true)
+  }
 
   const displayValue = summarizeSelection(options, selectedValues, placeholder)
 
@@ -157,7 +160,7 @@ export function Select(props: SelectProps) {
   const onTriggerKeyDown = (event: KeyboardEvent<HTMLButtonElement>) => {
     if (event.key === 'ArrowDown' || event.key === 'Enter' || event.key === ' ') {
       event.preventDefault()
-      setOpen(true)
+      openMenu()
     }
   }
 
@@ -199,7 +202,15 @@ export function Select(props: SelectProps) {
           aria-controls={listboxId}
           aria-invalid={error ? true : undefined}
           aria-describedby={error ? errorId : hint ? hintId : undefined}
-          onClick={() => !disabled && setOpen((current) => !current)}
+          onClick={() => {
+            if (disabled) return
+            if (open) {
+              setOpen(false)
+              setQuery('')
+              return
+            }
+            openMenu()
+          }}
           onKeyDown={onTriggerKeyDown}
           className={cn(
             'w-full border border-line/20 bg-ink/40 py-3 pr-24 pl-4 text-left outline-none transition focus:border-ball/70 focus:ring-2 focus:ring-ball/30 disabled:opacity-60',
