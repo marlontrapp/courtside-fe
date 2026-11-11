@@ -51,6 +51,7 @@ export const Loading: Story = {
       <Spinner variant="court" label="Loading courts…" />
       <Spinner variant="ball" label="Finding a match…" />
       <Spinner variant="racket" label="Warming up…" />
+      <Spinner variant="player" label="Heading to the court…" />
     </div>
   ),
 }

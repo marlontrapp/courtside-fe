@@ -1,10 +1,10 @@
 import { cn } from '@/components/cn'
 
-export type SpinnerVariant = 'court' | 'ball' | 'racket'
+export type SpinnerVariant = 'court' | 'ball' | 'racket' | 'player'
 
 export type SpinnerProps = {
   label?: string
-  /** Visual mark: court lines (default), tennis ball, or racket. */
+  /** Visual mark: court lines (default), ball, racket, or walking player. */
   variant?: SpinnerVariant
   className?: string
 }
@@ -90,10 +90,52 @@ function RacketMark({ className }: { className?: string }) {
   )
 }
 
+function PlayerMark({ className }: { className?: string }) {
+  return (
+    <svg
+      aria-hidden
+      viewBox="0 0 32 40"
+      className={cn('h-6 w-5 overflow-visible', className)}
+      fill="none"
+    >
+      <g className="origin-center animate-player-bob">
+        {/* Head */}
+        <circle cx="16" cy="6" r="3.25" className="stroke-line/80" strokeWidth="1.5" />
+        {/* Torso */}
+        <path d="M16 9.5v10" className="stroke-mist" strokeWidth="1.75" strokeLinecap="round" />
+        {/* Back arm */}
+        <g className="origin-[16px_12px] animate-player-arm-back">
+          <path d="M16 12l-6 5" className="stroke-line/50" strokeWidth="1.5" strokeLinecap="round" />
+        </g>
+        {/* Front arm + mini racket */}
+        <g className="origin-[16px_12px] animate-player-arm-front">
+          <path d="M16 12l7 3" className="stroke-mist" strokeWidth="1.5" strokeLinecap="round" />
+          <ellipse
+            cx="25"
+            cy="13.5"
+            rx="2.4"
+            ry="3"
+            className="stroke-ball"
+            strokeWidth="1.25"
+          />
+        </g>
+        {/* Legs */}
+        <g className="origin-[16px_19.5px] animate-player-leg-back">
+          <path d="M16 19.5l-5 12" className="stroke-line/55" strokeWidth="1.75" strokeLinecap="round" />
+        </g>
+        <g className="origin-[16px_19.5px] animate-player-leg-front">
+          <path d="M16 19.5l5 12" className="stroke-mist" strokeWidth="1.75" strokeLinecap="round" />
+        </g>
+      </g>
+    </svg>
+  )
+}
+
 const marks = {
   court: CourtMark,
   ball: BallMark,
   racket: RacketMark,
+  player: PlayerMark,
 } as const
 
 export function Spinner({
