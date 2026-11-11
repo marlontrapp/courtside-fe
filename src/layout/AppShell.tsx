@@ -63,7 +63,7 @@ export function AppShell() {
           <div className="flex items-center justify-between gap-3 border-b border-line/10 px-5 py-5">
             <div>
               <p id={titleId} className="text-xs font-medium tracking-[0.28em] text-ball uppercase">
-                CourtControl
+                Courtside
               </p>
               <p className="mt-1 text-sm text-fog">Find your way around</p>
             </div>
@@ -126,7 +126,7 @@ export function AppShell() {
               Menu
             </button>
             <p className="text-xs font-medium tracking-[0.24em] text-ball uppercase">
-              CourtControl
+              Courtside
             </p>
           </header>
 
