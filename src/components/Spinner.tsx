@@ -14,7 +14,7 @@ function CourtMark({ className }: { className?: string }) {
     <svg
       aria-hidden
       viewBox="0 0 32 48"
-      className={cn('h-5 w-3.5 origin-center animate-spin', className)}
+      className={cn('h-5 w-3.5 origin-center animate-spin-uneven', className)}
       fill="none"
     >
       {/* Doubles outline */}
@@ -39,7 +39,7 @@ function BallMark({ className }: { className?: string }) {
     <svg
       aria-hidden
       viewBox="0 0 32 32"
-      className={cn('h-5 w-5 origin-center animate-spin', className)}
+      className={cn('h-5 w-5 origin-center animate-spin-uneven', className)}
       fill="none"
     >
       <circle cx="16" cy="16" r="12" className="fill-ball/90 stroke-ball" strokeWidth="1" />
