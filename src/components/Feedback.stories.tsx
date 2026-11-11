@@ -46,7 +46,13 @@ export const Empty: Story = {
 }
 
 export const Loading: Story = {
-  render: () => <Spinner label="Loading courts…" />,
+  render: () => (
+    <div className="space-y-4">
+      <Spinner variant="court" label="Loading courts…" />
+      <Spinner variant="ball" label="Finding a match…" />
+      <Spinner variant="racket" label="Warming up…" />
+    </div>
+  ),
 }
 
 export const Dividers: Story = {

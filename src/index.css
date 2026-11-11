@@ -72,6 +72,10 @@
   .pulse-line {
     animation: pulse-line 3.2s ease-in-out infinite;
   }
+
+  .animate-racket-swing {
+    animation: racket-swing 1.1s ease-in-out infinite;
+  }
 }
 
 @keyframes fade-up {
@@ -101,5 +105,15 @@
   }
   50% {
     opacity: 0.9;
+  }
+}
+
+@keyframes racket-swing {
+  0%,
+  100% {
+    transform: rotate(-28deg);
+  }
+  50% {
+    transform: rotate(28deg);
   }
 }

@@ -25,7 +25,7 @@ export {
   type SelectProps,
   type SelectSingleProps,
 } from '@/components/Select'
-export { Spinner, type SpinnerProps } from '@/components/Spinner'
+export { Spinner, type SpinnerProps, type SpinnerVariant } from '@/components/Spinner'
 export { TextArea, type TextAreaProps } from '@/components/TextArea'
 export { TextField, type TextFieldProps } from '@/components/TextField'
 export { TimeSlot, type TimeSlotProps } from '@/components/TimeSlot'
