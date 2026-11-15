@@ -1,13 +1,37 @@
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? '').replace(/\/$/, '')
 
+/** DRF validation errors: field name (or `non_field_errors`) → messages. */
+export type FieldErrors = Record<string, string[]>
+
 export class ApiError extends Error {
   readonly status: number
+  readonly fieldErrors: FieldErrors
 
-  constructor(message: string, status: number) {
+  constructor(message: string, status: number, fieldErrors: FieldErrors = {}) {
     super(message)
     this.name = 'ApiError'
     this.status = status
+    this.fieldErrors = fieldErrors
   }
+}
+
+/** Every string in a DRF error value — list items can nest (`{"guests": {"0": ["…"]}}`). */
+function collectMessages(value: unknown): string[] {
+  if (typeof value === 'string') return [value]
+  if (Array.isArray(value)) return value.flatMap(collectMessages)
+  if (value && typeof value === 'object') return Object.values(value).flatMap(collectMessages)
+  return []
+}
+
+/** Pull `{field: ["msg", ...]}` pairs out of a DRF 400 body; ignores anything else. */
+function parseFieldErrors(data: unknown): FieldErrors {
+  if (!data || typeof data !== 'object' || Array.isArray(data)) return {}
+  const errors: FieldErrors = {}
+  for (const [field, value] of Object.entries(data)) {
+    const messages = collectMessages(value)
+    if (messages.length > 0) errors[field] = messages
+  }
+  return errors
 }
 
 function getCookie(name: string): string | null {
@@ -93,13 +117,20 @@ export async function apiJson<T>(path: string, options?: RequestOptions): Promis
   const response = await apiRequest(path, options)
   if (!response.ok) {
     let message = `Request failed (${response.status})`
+    let fieldErrors: FieldErrors = {}
     try {
-      const data = (await response.json()) as { detail?: string }
-      if (data.detail) message = data.detail
+      const data = (await response.json()) as unknown
+      const detail = (data as { detail?: unknown } | null)?.detail
+      if (typeof detail === 'string') {
+        message = detail
+      } else if (response.status === 400 || response.status === 409) {
+        fieldErrors = parseFieldErrors(data)
+        message = Object.values(fieldErrors)[0]?.[0] ?? message
+      }
     } catch {
       // ignore non-JSON error bodies
     }
-    throw new ApiError(message, response.status)
+    throw new ApiError(message, response.status, fieldErrors)
   }
   if (response.status === 204) return undefined as T
   return (await response.json()) as T

@@ -1,11 +1,12 @@
-import type { ButtonHTMLAttributes } from 'react'
+import type { ComponentPropsWithRef } from 'react'
 
 import { cn } from '@/components/cn'
 
 export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger'
 export type ButtonSize = 'md' | 'sm'
 
-export type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
+/** Native button props, incl. `ref` (React 19 passes it as a prop; it's spread onto <button>). */
+export type ButtonProps = ComponentPropsWithRef<'button'> & {
   variant?: ButtonVariant
   size?: ButtonSize
   fullWidth?: boolean

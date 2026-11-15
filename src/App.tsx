@@ -4,6 +4,7 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { AuthProvider } from '@/auth/AuthProvider'
 import { RequireAuth } from '@/auth/RequireAuth'
 import { AppShell } from '@/layout/AppShell'
+import { BookingHistoryPage } from '@/pages/BookingHistoryPage'
 import { ClubsPage } from '@/pages/ClubsPage'
 import { CourtsPage } from '@/pages/CourtsPage'
 import { HomePage } from '@/pages/HomePage'
@@ -32,6 +33,7 @@ export default function App() {
                 <Route path="/clubs" element={<ClubsPage />} />
                 <Route path="/players" element={<PlayersPage />} />
                 <Route path="/courts" element={<CourtsPage />} />
+                <Route path="/bookings" element={<BookingHistoryPage />} />
               </Route>
             </Route>
             <Route path="*" element={<Navigate to="/" replace />} />

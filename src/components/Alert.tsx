@@ -1,10 +1,11 @@
-import type { HTMLAttributes, ReactNode } from 'react'
+import type { ComponentPropsWithRef, ReactNode } from 'react'
 
 import { cn } from '@/components/cn'
 
 export type AlertTone = 'error' | 'info' | 'success'
 
-export type AlertProps = HTMLAttributes<HTMLParagraphElement> & {
+/** Paragraph props, incl. `ref` (spread onto the <p>). */
+export type AlertProps = ComponentPropsWithRef<'p'> & {
   tone?: AlertTone
   children: ReactNode
 }

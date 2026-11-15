@@ -25,4 +25,9 @@ export const APP_NAV: NavItem[] = [
     label: 'Courts',
     description: 'Find courts',
   },
+  {
+    to: '/bookings',
+    label: 'Bookings',
+    description: 'Booking history',
+  },
 ]
