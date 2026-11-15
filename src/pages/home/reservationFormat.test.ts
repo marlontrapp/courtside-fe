@@ -16,7 +16,7 @@ import {
   reservationTimeRange,
   reservationTiming,
 } from '@/pages/home/reservationFormat'
-import { makeReservation } from '@/test/factories'
+import { makePlayer, makeReservation } from '@/test/factories'
 import { freezeDate } from '@/test/render'
 
 const ms = (iso: string) => Date.parse(iso)
@@ -54,18 +54,23 @@ describe('reservation formatting', () => {
     expect(reservationPeople(makeReservation())).toBeNull()
     expect(
       reservationPeople(
-        makeReservation({ guests: ['ana@example.com', 'bo@example.com'] }),
+        makeReservation({
+          guests: [
+            makePlayer({ first_name: 'Ana', last_name: '' }),
+            makePlayer({ first_name: 'Bo', last_name: '' }),
+          ],
+        }),
       ),
-    ).toBe('With ana@example.com, bo@example.com')
+    ).toBe('With Ana, Bo')
     expect(
       reservationPeople(
         makeReservation({
           role: 'guest',
-          primary_player: 'carla@example.com',
-          guests: ['player@example.com'],
+          primary_player: makePlayer({ first_name: 'Carla', last_name: 'Costa' }),
+          guests: [makePlayer({ first_name: 'Pat', last_name: 'Player' })],
         }),
       ),
-    ).toBe('Booked by carla@example.com')
+    ).toBe('Booked by Carla Costa')
   })
 })
 
@@ -171,7 +176,7 @@ describe('cancelBlockedReason', () => {
     const reason = cancelBlockedReason(
       makeReservation({
         role: 'guest',
-        primary_player: 'carla@example.com',
+        primary_player: makePlayer({ first_name: 'Carla', last_name: 'Costa' }),
         can_cancel: false,
       }),
       now,
@@ -179,7 +184,7 @@ describe('cancelBlockedReason', () => {
     expect(reason).toBe(
       "Guests can't cancel a booking. Ask the booking owner to cancel it.",
     )
-    expect(reason).not.toContain('carla@example.com')
+    expect(reason).not.toContain('Carla')
   })
 
   it('explains bookings that have already started', () => {
@@ -240,7 +245,7 @@ describe('cancellationStatus (card footer)', () => {
       cancellationStatus(
         makeReservation({
           role: 'guest',
-          primary_player: 'carla@example.com',
+          primary_player: makePlayer({ first_name: 'Carla', last_name: 'Costa' }),
           can_cancel: false,
         }),
         now,

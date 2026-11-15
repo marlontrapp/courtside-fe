@@ -12,6 +12,7 @@ import {
   PLAYER_BOOKING_TYPES,
   RESERVATIONS_QUERY_KEY,
   createReservation,
+  playerDisplayName,
   type Reservation,
 } from '@/api/reservations'
 import { useAuth } from '@/auth/auth-context'
@@ -382,7 +383,12 @@ function BookingConfirmation({
         reservation.booking_type,
     ],
     ['Lighting', reservation.includes_lighting ? 'Included' : 'Not included'],
-    ['Guests', reservation.guests.length ? reservation.guests.join(', ') : 'None'],
+    [
+      'Guests',
+      reservation.guests.length
+        ? reservation.guests.map(playerDisplayName).join(', ')
+        : 'None',
+    ],
     ['Total', formatAmount(Number(reservation.total_price))],
   ]
 
