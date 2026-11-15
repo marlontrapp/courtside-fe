@@ -10,6 +10,7 @@ import { useAuth } from '@/auth/auth-context'
 import { Alert } from '@/components/Alert'
 import { Button } from '@/components/Button'
 import { TextField } from '@/components/TextField'
+import { CourtBackdrop } from '@/layout/CourtBackdrop'
 
 const loginSchema = z.object({
   email: z.email('Enter a valid email'),
@@ -34,12 +35,13 @@ export function LoginPage() {
     mutationFn: login,
     onSuccess: async () => {
       await refresh()
-      navigate('/', { replace: true })
+      // Ask how they want to act this time (player, club admin, …).
+      navigate('/start', { replace: true })
     },
   })
 
   if (status === 'authenticated') {
-    return <Navigate to="/" replace />
+    return <Navigate to="/start" replace />
   }
 
   const onSubmit = handleSubmit((values) => {
@@ -55,19 +57,7 @@ export function LoginPage() {
 
   return (
     <main className="relative min-h-dvh overflow-hidden bg-ink text-line">
-      <div
-        aria-hidden
-        className="fade-in absolute inset-0 bg-[radial-gradient(ellipse_at_20%_20%,rgba(31,122,85,0.45),transparent_55%),radial-gradient(ellipse_at_80%_10%,rgba(200,245,66,0.12),transparent_40%),linear-gradient(160deg,#07150f_0%,#0c3b2a_48%,#07150f_100%)]"
-      />
-      <div aria-hidden className="court-grid absolute inset-0 opacity-40" />
-      <div
-        aria-hidden
-        className="pulse-line absolute left-[12%] top-[18%] h-[64%] w-px bg-gradient-to-b from-transparent via-line/70 to-transparent"
-      />
-      <div
-        aria-hidden
-        className="pulse-line absolute left-[12%] right-[18%] top-[50%] h-px bg-gradient-to-r from-transparent via-ball/70 to-transparent [animation-delay:400ms]"
-      />
+      <CourtBackdrop />
 
       <div className="relative mx-auto flex min-h-dvh w-full max-w-6xl flex-col justify-center px-6 py-16 sm:px-10 lg:px-16">
         <div className="fade-up max-w-xl">

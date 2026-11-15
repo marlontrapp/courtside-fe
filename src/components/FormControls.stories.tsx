@@ -122,3 +122,57 @@ export const CheckboxDefault: Story = {
     )
   },
 }
+
+export const SelectWithDescriptions: Story = {
+  name: 'Select · options with subtitles',
+  render: function Render() {
+    const [value, setValue] = useState('jardins')
+    return (
+      <div className="max-w-sm">
+        <Select
+          label="Club"
+          value={value}
+          onChange={setValue}
+          clearable={false}
+          searchable={false}
+          options={[
+            { value: 'jardins', label: 'Jardins Country Club', description: 'Club admin · Groundskeeper' },
+            { value: 'lisboa', label: 'Lisboa Tennis Club', description: 'Front desk' },
+          ]}
+        />
+      </div>
+    )
+  },
+}
+
+export const SelectPlain: Story = {
+  name: 'Select · plain (the value is the control)',
+  parameters: {
+    docs: {
+      description: {
+        story:
+          'For places where the current value itself opens the list — like the club name in the side panel. No field box; the label stays for screen readers.',
+      },
+    },
+  },
+  render: function Render() {
+    const [value, setValue] = useState('jardins')
+    return (
+      <div className="w-56">
+        <Select
+          variant="plain"
+          label="Club"
+          triggerClassName="font-display text-lg leading-snug"
+          value={value}
+          onChange={setValue}
+          clearable={false}
+          searchable={false}
+          options={[
+            { value: 'jardins', label: 'Jardins Country Club', description: 'Club admin · Groundskeeper' },
+            { value: 'lisboa', label: 'Lisboa Tennis Club', description: 'Front desk' },
+          ]}
+        />
+      </div>
+    )
+  },
+}
