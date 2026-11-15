@@ -240,3 +240,117 @@ export function conflictingBookings(error: unknown): AffectedBooking[] {
     .safeParse(error.body)
   return parsed.success ? parsed.data.conflicting_reservations : []
 }
+
+// --- Court weekly schedules (day templates per weekday) -----------------------------
+
+export const WORKDAYS = [
+  'MONDAY',
+  'TUESDAY',
+  'WEDNESDAY',
+  'THURSDAY',
+  'FRIDAY',
+] as const
+export const WEEKEND = ['SATURDAY', 'SUNDAY'] as const
+
+const templateRefSchema = z
+  .object({ id: z.string(), name: z.string() })
+  .nullable()
+
+const courtScheduleSchema = z.object({
+  id: z.string(),
+  valid_from: z.string(),
+  valid_until: z.string().nullable(),
+  state: z.string(),
+  days: z.array(
+    z.object({
+      weekdays: z.array(z.string()),
+      day_template: templateRefSchema,
+    }),
+  ),
+})
+
+export type CourtSchedule = z.infer<typeof courtScheduleSchema>
+
+export type ScheduleDayAssignment = {
+  weekdays: string[]
+  /** Template id, or null to close those days. */
+  day_template: string | null
+}
+
+export type CourtScheduleInput = {
+  valid_from: string
+  valid_until?: string | null
+  days: ScheduleDayAssignment[]
+  force?: boolean
+}
+
+export type CourtScheduleChange = {
+  schedule: CourtSchedule
+  cancelled: AffectedBooking[]
+}
+
+const schedulesPath = (courtId: string) =>
+  `/api/v1/courts/${encodeURIComponent(courtId)}/schedules/`
+
+export const courtSchedulesQueryKey = (courtId: string) =>
+  ['courts', courtId, 'schedules'] as const
+
+/** Every weekly schedule version for a court (past, current, planned). */
+export function fetchCourtSchedules(courtId: string): Promise<CourtSchedule[]> {
+  return getParsed(schedulesPath(courtId), z.array(courtScheduleSchema), 'court schedules')
+}
+
+/**
+ * Plan a new weekly schedule version from `valid_from` (today or later).
+ * Future bookings that no longer fit: 409, or `force` to cancel them.
+ */
+export async function createCourtSchedule(
+  courtId: string,
+  input: CourtScheduleInput,
+): Promise<CourtScheduleChange> {
+  const data = await apiJson<unknown>(schedulesPath(courtId), {
+    method: 'POST',
+    body: input,
+  })
+  const parsed = courtScheduleSchema
+    .extend({ cancelled_reservations: z.array(affectedBookingSchema).default([]) })
+    .safeParse(data)
+  if (!parsed.success) throw unexpected('court schedule')
+  const { cancelled_reservations: cancelled, ...schedule } = parsed.data
+  return { schedule, cancelled }
+}
+
+/** The schedule in effect today, if any. */
+export function currentSchedule(
+  schedules: CourtSchedule[],
+): CourtSchedule | null {
+  return schedules.find((item) => item.state === 'current') ?? null
+}
+
+/**
+ * Templates linked on workdays / weekend of a schedule version.
+ * Returns null ids when those days are closed or the mapping isn't a simple
+ * workdays+weekend split.
+ */
+export function scheduleTemplateIds(schedule: CourtSchedule | null): {
+  workdays: string | null
+  weekend: string | null
+} {
+  if (!schedule) return { workdays: null, weekend: null }
+  const byDay = new Map<string, string | null>()
+  for (const group of schedule.days) {
+    for (const day of group.weekdays) {
+      byDay.set(day, group.day_template?.id ?? null)
+    }
+  }
+  const workdayIds = WORKDAYS.map((day) => byDay.get(day) ?? null)
+  const weekendIds = WEEKEND.map((day) => byDay.get(day) ?? null)
+  const same = (ids: Array<string | null>) =>
+    ids.every((id) => id === ids[0]) ? ids[0] : undefined
+  const workdays = same(workdayIds)
+  const weekend = same(weekendIds)
+  return {
+    workdays: workdays === undefined ? null : workdays,
+    weekend: weekend === undefined ? null : weekend,
+  }
+}
