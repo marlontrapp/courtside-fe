@@ -4,22 +4,29 @@ import { useEffect, useId, useMemo, useState } from 'react'
 import { COURTS_QUERY_KEY } from '@/api/courts'
 import {
   COURT_SURFACES,
-  WEEKEND,
-  WORKDAYS,
+  WEEKDAYS,
+  WEEKDAY_LABELS,
   clubCourtsQueryKey,
   createClubCourt,
   createCourtSchedule,
   currentSchedule,
+  dayTemplatesEqual,
   dayTemplatesQueryKey,
+  emptyDayTemplates,
   fetchCourtSchedules,
   fetchDayTemplates,
-  scheduleTemplateIds,
+  groupDayTemplates,
+  hasAnyOpenDay,
+  scheduleDayTemplates,
+  sharedDayTemplate,
   updateClubCourt,
   type AffectedBooking,
   type CourtSurface,
+  type DayTemplatesByWeekday,
   type ManagedCourt,
   type ManagedCourtChange,
   type ManagedCourtInput,
+  type Weekday,
 } from '@/api/clubs'
 import { playerDisplayName } from '@/api/reservations'
 import { useAuth } from '@/auth/auth-context'
@@ -39,8 +46,8 @@ import {
   todayIn,
 } from '@/pages/courts/format'
 
-/** Empty select value: leave weekend closed (no template). */
-const WEEKEND_CLOSED = ''
+/** Select value for a closed day (no template). */
+const CLOSED = ''
 
 type FormState = {
   name: string
@@ -51,10 +58,8 @@ type FormState = {
   hourly_rate: string
   lighting_fee: string
   is_active: boolean
-  /** Day template for Mon–Fri; empty = don’t set / leave as-is when unchanged. */
-  workdaysTemplateId: string
-  /** Day template for Sat–Sun; empty = closed those days. */
-  weekendTemplateId: string
+  /** Day template per weekday; empty = closed that day. */
+  dayTemplates: DayTemplatesByWeekday
 }
 
 const SURFACE_OPTIONS: SelectOption[] = COURT_SURFACES.map((value) => ({
@@ -64,7 +69,7 @@ const SURFACE_OPTIONS: SelectOption[] = COURT_SURFACES.map((value) => ({
 
 function defaults(
   court: ManagedCourt | null,
-  scheduleIds: { workdays: string | null; weekend: string | null },
+  dayTemplates: DayTemplatesByWeekday,
 ): FormState {
   return {
     name: court?.name ?? '',
@@ -77,8 +82,7 @@ function defaults(
     hourly_rate: court?.hourly_rate ?? '0.00',
     lighting_fee: court?.lighting_fee ?? '0.00',
     is_active: court?.is_active ?? true,
-    workdaysTemplateId: scheduleIds.workdays ?? '',
-    weekendTemplateId: scheduleIds.weekend ?? WEEKEND_CLOSED,
+    dayTemplates,
   }
 }
 
@@ -102,13 +106,6 @@ function courtDiff(
   if (current.lighting_fee !== initial.lighting_fee) changes.lighting_fee = current.lighting_fee
   if (current.is_active !== initial.is_active) changes.is_active = current.is_active
   return changes
-}
-
-function scheduleChanged(initial: FormState, current: FormState): boolean {
-  return (
-    current.workdaysTemplateId !== initial.workdaysTemplateId ||
-    current.weekendTemplateId !== initial.weekendTemplateId
-  )
 }
 
 export type CourtModalProps = {
@@ -143,8 +140,8 @@ export function CourtModal({
     enabled: Boolean(court),
   })
 
-  const scheduleIds = useMemo(
-    () => scheduleTemplateIds(currentSchedule(schedulesQuery.data ?? [])),
+  const loadedDayTemplates = useMemo(
+    () => scheduleDayTemplates(currentSchedule(schedulesQuery.data ?? [])),
     [schedulesQuery.data],
   )
 
@@ -155,18 +152,38 @@ export function CourtModal({
     name?: string
     hourly_rate?: string
     lighting_fee?: string
-    workdaysTemplateId?: string
   }>({})
 
   useEffect(() => {
     if (!ready || form !== null) return
-    const seeded = defaults(court, scheduleIds)
+    const seeded = defaults(
+      court,
+      editing ? loadedDayTemplates : emptyDayTemplates(),
+    )
     setInitial(seeded)
     setForm(seeded)
-  }, [ready, form, court, scheduleIds])
+  }, [ready, form, court, editing, loadedDayTemplates])
 
   const patch = <K extends keyof FormState>(key: K, value: FormState[K]) =>
     setForm((current) => (current ? { ...current, [key]: value } : current))
+
+  const setDayTemplate = (day: Weekday, templateId: string) =>
+    setForm((current) =>
+      current
+        ? {
+            ...current,
+            dayTemplates: { ...current.dayTemplates, [day]: templateId },
+          }
+        : current,
+    )
+
+  const applyToAll = (templateId: string) =>
+    setForm((current) => {
+      if (!current) return current
+      const dayTemplates = emptyDayTemplates()
+      for (const day of WEEKDAYS) dayTemplates[day] = templateId
+      return { ...current, dayTemplates }
+    })
 
   const templateOptions: SelectOption[] = (templatesQuery.data ?? []).map((template) => ({
     value: template.id,
@@ -176,10 +193,12 @@ export function CourtModal({
       : 'No slots (closed day)',
   }))
 
-  const weekendOptions: SelectOption[] = [
-    { value: WEEKEND_CLOSED, label: 'Closed' },
+  const dayOptions: SelectOption[] = [
+    { value: CLOSED, label: 'Closed' },
     ...templateOptions,
   ]
+
+  const allDaysValue = form ? sharedDayTemplate(form.dayTemplates) : null
 
   const mutation = useMutation({
     mutationFn: async ({ force }: { force: boolean }): Promise<ManagedCourtChange> => {
@@ -216,23 +235,16 @@ export function CourtModal({
             : { court, cancelled: [] }
       }
 
+      const scheduleDirty = !dayTemplatesEqual(initial.dayTemplates, normalized.dayTemplates)
       const needsSchedule =
-        Boolean(normalized.workdaysTemplateId) &&
-        (!editing || scheduleChanged(initial, normalized))
+        scheduleDirty &&
+        (hasAnyOpenDay(normalized.dayTemplates) ||
+          (editing && hasAnyOpenDay(initial.dayTemplates)))
 
       if (needsSchedule) {
         const scheduled = await createCourtSchedule(change.court.id, {
           valid_from: todayIn(clubTimezone),
-          days: [
-            {
-              weekdays: [...WORKDAYS],
-              day_template: normalized.workdaysTemplateId,
-            },
-            {
-              weekdays: [...WEEKEND],
-              day_template: normalized.weekendTemplateId || null,
-            },
-          ],
+          days: groupDayTemplates(normalized.dayTemplates),
           force,
         })
         change = {
@@ -254,7 +266,10 @@ export function CourtModal({
       onSaved(change.court, change.cancelled)
     },
     onError: (error) => {
-      if (error instanceof Error && (error.message === 'invalid-money' || error.message === 'form-not-ready')) {
+      if (
+        error instanceof Error &&
+        (error.message === 'invalid-money' || error.message === 'form-not-ready')
+      ) {
         return
       }
       const mapped = courtErrors(error)
@@ -282,10 +297,6 @@ export function CourtModal({
     }
     if (!normalizeMoney(form.lighting_fee)) {
       nextLocal.lighting_fee = 'Enter a non-negative amount, e.g. 30.00.'
-    }
-    // Creating with a weekend template but no workdays template is incomplete.
-    if (!form.workdaysTemplateId && form.weekendTemplateId) {
-      nextLocal.workdaysTemplateId = 'Pick a Mon–Fri day template, or clear the weekend one.'
     }
     setLocalErrors(nextLocal)
     if (Object.keys(nextLocal).length) return
@@ -421,8 +432,9 @@ export function CourtModal({
               Weekly schedule
             </legend>
             <p className="text-sm text-fog">
-              Link day templates so players see bookable slots. Changes apply from today
-              ({todayIn(clubTimezone).replace(/-/g, '/')} in the club’s timezone).
+              Pick a day template for each weekday, or apply one to every day. Closed days
+              have no bookable slots. Changes apply from today (
+              {todayIn(clubTimezone).replace(/-/g, '/')} in the club’s timezone).
             </p>
             {templatesQuery.isError ? (
               <Alert>Couldn’t load day templates. Create some under Day templates first.</Alert>
@@ -432,24 +444,34 @@ export function CourtModal({
                 No day templates yet — create one under Day templates, then link it here.
               </Alert>
             ) : null}
+
             <Select
-              label="Mon–Fri"
-              options={templateOptions}
-              value={form.workdaysTemplateId}
-              onChange={(value) => patch('workdaysTemplateId', value)}
-              placeholder="No template"
-              clearable
-              error={localErrors.workdaysTemplateId}
-              hint="Required to open the court on weekdays."
-            />
-            <Select
-              label="Sat–Sun"
-              options={weekendOptions}
-              value={form.weekendTemplateId}
-              onChange={(value) => patch('weekendTemplateId', value)}
+              label="Apply to all days"
+              options={
+                allDaysValue === null
+                  ? [{ value: '__mixed__', label: 'Mixed', disabled: true }, ...dayOptions]
+                  : dayOptions
+              }
+              value={allDaysValue === null ? '__mixed__' : allDaysValue}
+              onChange={(value) => {
+                if (value !== '__mixed__') applyToAll(value)
+              }}
               clearable={false}
-              hint="Closed leaves Saturday and Sunday without slots."
+              hint="Sets Monday through Sunday to the same template (or Closed)."
             />
+
+            <div className="grid gap-3 sm:grid-cols-2">
+              {WEEKDAYS.map((day) => (
+                <Select
+                  key={day}
+                  label={WEEKDAY_LABELS[day]}
+                  options={dayOptions}
+                  value={form.dayTemplates[day]}
+                  onChange={(value) => setDayTemplate(day, value)}
+                  clearable={false}
+                />
+              ))}
+            </div>
           </fieldset>
         </form>
       )}

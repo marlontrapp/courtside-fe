@@ -243,14 +243,42 @@ export function conflictingBookings(error: unknown): AffectedBooking[] {
 
 // --- Court weekly schedules (day templates per weekday) -----------------------------
 
-export const WORKDAYS = [
+export const WEEKDAYS = [
   'MONDAY',
   'TUESDAY',
   'WEDNESDAY',
   'THURSDAY',
   'FRIDAY',
+  'SATURDAY',
+  'SUNDAY',
 ] as const
-export const WEEKEND = ['SATURDAY', 'SUNDAY'] as const
+
+export type Weekday = (typeof WEEKDAYS)[number]
+
+export const WEEKDAY_LABELS: Record<Weekday, string> = {
+  MONDAY: 'Monday',
+  TUESDAY: 'Tuesday',
+  WEDNESDAY: 'Wednesday',
+  THURSDAY: 'Thursday',
+  FRIDAY: 'Friday',
+  SATURDAY: 'Saturday',
+  SUNDAY: 'Sunday',
+}
+
+/** Template id per weekday; empty string = closed that day. */
+export type DayTemplatesByWeekday = Record<Weekday, string>
+
+export function emptyDayTemplates(): DayTemplatesByWeekday {
+  return {
+    MONDAY: '',
+    TUESDAY: '',
+    WEDNESDAY: '',
+    THURSDAY: '',
+    FRIDAY: '',
+    SATURDAY: '',
+    SUNDAY: '',
+  }
+}
 
 const templateRefSchema = z
   .object({ id: z.string(), name: z.string() })
@@ -327,30 +355,52 @@ export function currentSchedule(
   return schedules.find((item) => item.state === 'current') ?? null
 }
 
-/**
- * Templates linked on workdays / weekend of a schedule version.
- * Returns null ids when those days are closed or the mapping isn't a simple
- * workdays+weekend split.
- */
-export function scheduleTemplateIds(schedule: CourtSchedule | null): {
-  workdays: string | null
-  weekend: string | null
-} {
-  if (!schedule) return { workdays: null, weekend: null }
-  const byDay = new Map<string, string | null>()
+/** Template id (or '') for each weekday of a schedule version. */
+export function scheduleDayTemplates(
+  schedule: CourtSchedule | null,
+): DayTemplatesByWeekday {
+  const byDay = emptyDayTemplates()
+  if (!schedule) return byDay
   for (const group of schedule.days) {
     for (const day of group.weekdays) {
-      byDay.set(day, group.day_template?.id ?? null)
+      if ((WEEKDAYS as readonly string[]).includes(day)) {
+        byDay[day as Weekday] = group.day_template?.id ?? ''
+      }
     }
   }
-  const workdayIds = WORKDAYS.map((day) => byDay.get(day) ?? null)
-  const weekendIds = WEEKEND.map((day) => byDay.get(day) ?? null)
-  const same = (ids: Array<string | null>) =>
-    ids.every((id) => id === ids[0]) ? ids[0] : undefined
-  const workdays = same(workdayIds)
-  const weekend = same(weekendIds)
-  return {
-    workdays: workdays === undefined ? null : workdays,
-    weekend: weekend === undefined ? null : weekend,
+  return byDay
+}
+
+/** Group weekdays that share the same template for the schedules API body. */
+export function groupDayTemplates(
+  byDay: DayTemplatesByWeekday,
+): ScheduleDayAssignment[] {
+  const groups = new Map<string | null, string[]>()
+  for (const day of WEEKDAYS) {
+    const templateId = byDay[day] || null
+    const weekdays = groups.get(templateId) ?? []
+    weekdays.push(day)
+    groups.set(templateId, weekdays)
   }
+  return [...groups.entries()].map(([day_template, weekdays]) => ({
+    weekdays,
+    day_template,
+  }))
+}
+
+export function hasAnyOpenDay(byDay: DayTemplatesByWeekday): boolean {
+  return WEEKDAYS.some((day) => Boolean(byDay[day]))
+}
+
+export function dayTemplatesEqual(
+  left: DayTemplatesByWeekday,
+  right: DayTemplatesByWeekday,
+): boolean {
+  return WEEKDAYS.every((day) => left[day] === right[day])
+}
+
+/** Shared value when every day uses the same template; otherwise null (mixed). */
+export function sharedDayTemplate(byDay: DayTemplatesByWeekday): string | null {
+  const first = byDay.MONDAY
+  return WEEKDAYS.every((day) => byDay[day] === first) ? first : null
 }

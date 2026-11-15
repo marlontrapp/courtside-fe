@@ -12,7 +12,9 @@ import {
   fetchClubCourts,
   fetchCourtSchedules,
   fetchDayTemplates,
-  scheduleTemplateIds,
+  groupDayTemplates,
+  scheduleDayTemplates,
+  sharedDayTemplate,
   updateClubCourt,
   updateDayTemplate,
 } from '@/api/clubs'
@@ -230,7 +232,7 @@ describe('clubs API', () => {
     ])
   })
 
-  it('reads workday and weekend template ids from a schedule', () => {
+  it('maps and groups per-weekday day templates', () => {
     const schedule = {
       id: 's1',
       valid_from: '2030-01-08',
@@ -238,23 +240,47 @@ describe('clubs API', () => {
       state: 'current',
       days: [
         {
-          weekdays: ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY'],
+          weekdays: ['MONDAY', 'WEDNESDAY', 'FRIDAY'],
           day_template: { id: 't1', name: 'Weekdays' },
         },
         {
+          weekdays: ['TUESDAY', 'THURSDAY'],
+          day_template: { id: 't2', name: 'Evening' },
+        },
+        {
           weekdays: ['SATURDAY', 'SUNDAY'],
-          day_template: { id: 't2', name: 'Weekend' },
+          day_template: null,
         },
       ],
     }
     expect(currentSchedule([schedule, { ...schedule, id: 's0', state: 'past' }])).toEqual(
       schedule,
     )
-    expect(scheduleTemplateIds(schedule)).toEqual({
-      workdays: 't1',
-      weekend: 't2',
+    const byDay = scheduleDayTemplates(schedule)
+    expect(byDay).toMatchObject({
+      MONDAY: 't1',
+      TUESDAY: 't2',
+      WEDNESDAY: 't1',
+      THURSDAY: 't2',
+      FRIDAY: 't1',
+      SATURDAY: '',
+      SUNDAY: '',
     })
-    expect(scheduleTemplateIds(null)).toEqual({ workdays: null, weekend: null })
+    expect(sharedDayTemplate(byDay)).toBeNull()
+    expect(groupDayTemplates(byDay)).toEqual([
+      {
+        weekdays: ['MONDAY', 'WEDNESDAY', 'FRIDAY'],
+        day_template: 't1',
+      },
+      {
+        weekdays: ['TUESDAY', 'THURSDAY'],
+        day_template: 't2',
+      },
+      {
+        weekdays: ['SATURDAY', 'SUNDAY'],
+        day_template: null,
+      },
+    ])
   })
 
   it('reads the bookings a 409 lists', () => {
