@@ -3,12 +3,16 @@ import { beforeEach, describe, expect, it } from 'vitest'
 import {
   conflictingBookings,
   createClubCourt,
+  createCourtSchedule,
   createDayTemplate,
+  currentSchedule,
   deleteClubCourt,
   deleteDayTemplate,
   fetchClub,
   fetchClubCourts,
+  fetchCourtSchedules,
   fetchDayTemplates,
+  scheduleTemplateIds,
   updateClubCourt,
   updateDayTemplate,
 } from '@/api/clubs'
@@ -167,6 +171,90 @@ describe('clubs API', () => {
         body: undefined,
       },
     ])
+  })
+
+  it('lists and creates court schedules', async () => {
+    const schedule = {
+      id: 's1',
+      valid_from: '2030-01-08',
+      valid_until: null,
+      state: 'current',
+      days: [
+        {
+          weekdays: ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY'],
+          day_template: { id: 't1', name: 'Weekdays' },
+        },
+        {
+          weekdays: ['SATURDAY', 'SUNDAY'],
+          day_template: null,
+        },
+      ],
+    }
+    const fetchMock = mockFetch((_url, init) => {
+      if (init?.method === 'POST') {
+        return jsonResponse({ ...schedule, cancelled_reservations: [] }, 201)
+      }
+      return jsonResponse([schedule])
+    })
+
+    await expect(fetchCourtSchedules('court-1')).resolves.toEqual([schedule])
+    await expect(
+      createCourtSchedule('court-1', {
+        valid_from: '2030-01-08',
+        days: [
+          {
+            weekdays: ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY'],
+            day_template: 't1',
+          },
+          { weekdays: ['SATURDAY', 'SUNDAY'], day_template: null },
+        ],
+      }),
+    ).resolves.toEqual({ schedule, cancelled: [] })
+
+    expect(calls(fetchMock)).toEqual([
+      { url: '/api/v1/courts/court-1/schedules/', method: 'GET', body: undefined },
+      {
+        url: '/api/v1/courts/court-1/schedules/',
+        method: 'POST',
+        body: {
+          valid_from: '2030-01-08',
+          days: [
+            {
+              weekdays: ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY'],
+              day_template: 't1',
+            },
+            { weekdays: ['SATURDAY', 'SUNDAY'], day_template: null },
+          ],
+        },
+      },
+    ])
+  })
+
+  it('reads workday and weekend template ids from a schedule', () => {
+    const schedule = {
+      id: 's1',
+      valid_from: '2030-01-08',
+      valid_until: null,
+      state: 'current',
+      days: [
+        {
+          weekdays: ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY'],
+          day_template: { id: 't1', name: 'Weekdays' },
+        },
+        {
+          weekdays: ['SATURDAY', 'SUNDAY'],
+          day_template: { id: 't2', name: 'Weekend' },
+        },
+      ],
+    }
+    expect(currentSchedule([schedule, { ...schedule, id: 's0', state: 'past' }])).toEqual(
+      schedule,
+    )
+    expect(scheduleTemplateIds(schedule)).toEqual({
+      workdays: 't1',
+      weekend: 't2',
+    })
+    expect(scheduleTemplateIds(null)).toEqual({ workdays: null, weekend: null })
   })
 
   it('reads the bookings a 409 lists', () => {

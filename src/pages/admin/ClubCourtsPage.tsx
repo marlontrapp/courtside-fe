@@ -152,6 +152,7 @@ export function ClubCourtsPage() {
       {editing ? (
         <CourtModal
           clubId={clubId}
+          clubTimezone={club.timezone}
           court={editing.court}
           onClose={() => setEditing(null)}
           onSaved={(court, cancelled) => {
