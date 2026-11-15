@@ -196,8 +196,9 @@ describe('Club courts', () => {
     await user.type(within(dialog()).getByLabelText('Hourly rate'), '120')
     await user.clear(within(dialog()).getByLabelText('Lighting fee'))
     await user.type(within(dialog()).getByLabelText('Lighting fee'), '30')
-    await pick(user, 'Mon–Fri', /Weekdays/)
-    await pick(user, 'Sat–Sun', /Weekend/)
+    await pick(user, 'Apply to all days', /Weekdays/)
+    await pick(user, 'Saturday', /Weekend/)
+    await pick(user, 'Sunday', /Closed/)
     await user.click(within(dialog()).getByRole('button', { name: 'Create court' }))
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Created Court 1 - Guga.')
@@ -218,8 +219,12 @@ describe('Club courts', () => {
           day_template: 'tpl-weekdays',
         },
         {
-          weekdays: ['SATURDAY', 'SUNDAY'],
+          weekdays: ['SATURDAY'],
           day_template: 'tpl-weekend',
+        },
+        {
+          weekdays: ['SUNDAY'],
+          day_template: null,
         },
       ],
     })
