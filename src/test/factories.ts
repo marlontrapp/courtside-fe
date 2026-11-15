@@ -1,4 +1,5 @@
 import type { ClubSummary, Court, CourtPage } from '@/api/courts'
+import type { Me, WorkingClub } from '@/api/me'
 import type { PlayerSummary, Reservation, ReservationPage } from '@/api/reservations'
 
 let sequence = 0
@@ -99,5 +100,34 @@ export function makeReservationPage(
     count,
     next: hasNext ? `http://127.0.0.1:8000/api/v1/reservations/?page=${page + 1}` : null,
     results,
+  }
+}
+
+/** A club the signed-in user works in (defaults: Ibirapuera, club admin). */
+export function makeWorkingClub(overrides: Partial<WorkingClub> = {}): WorkingClub {
+  return {
+    id: IBIRAPUERA.id,
+    name: IBIRAPUERA.name,
+    slug: IBIRAPUERA.slug,
+    address: 'Av. Pedro Álvares Cabral, São Paulo',
+    timezone: IBIRAPUERA.timezone,
+    access_type: 'OPEN',
+    is_active: true,
+    roles: ['ADMIN'],
+    ...overrides,
+  }
+}
+
+/** The signed-in user (default: a player with no club roles). */
+export function makeMe(overrides: Partial<Me> = {}): Me {
+  return {
+    id: 'user-1',
+    email: 'player@example.com',
+    first_name: 'Pat',
+    last_name: 'Player',
+    is_player: true,
+    is_site_staff: false,
+    clubs: [],
+    ...overrides,
   }
 }

@@ -1,25 +1,29 @@
 import { useEffect, useId, useState } from 'react'
-import { useMutation } from '@tanstack/react-query'
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 
-import { logout } from '@/api/auth'
 import { useAuth } from '@/auth/auth-context'
-import { APP_NAV } from '@/layout/nav'
+import { useSignOut } from '@/auth/useSignOut'
+import { ClubHeader } from '@/layout/ClubHeader'
+import { APP_NAV, CLUB_NAV, type NavItem } from '@/layout/nav'
+import { useWorkspace } from '@/workspace/workspace-context'
+import { actingOptions, canManageSchedules } from '@/workspace/workspace'
 
 export function AppShell() {
   const navigate = useNavigate()
-  const { refresh } = useAuth()
+  const { user } = useAuth()
+  const { workspace, club, role } = useWorkspace()
   const [menuOpen, setMenuOpen] = useState(false)
   const titleId = useId()
 
-  const mutation = useMutation({
-    mutationFn: logout,
-    onSuccess: async () => {
-      setMenuOpen(false)
-      await refresh()
-      navigate('/login', { replace: true })
-    },
-  })
+  const mutation = useSignOut({ onSignedOut: () => setMenuOpen(false) })
+
+  // Club work shows the club's pages (schedule tools for admins only); players the app's.
+  const navItems: NavItem[] =
+    workspace?.kind === 'club'
+      ? CLUB_NAV.filter((item) => !item.schedules || (role && canManageSchedules(role)))
+      : APP_NAV
+  const homePath = workspace?.kind === 'club' ? '/manage' : '/'
+  const canSwitchRole = user ? actingOptions(user).length > 1 : false
 
   useEffect(() => {
     if (!menuOpen) return
@@ -64,15 +68,19 @@ export function AppShell() {
             <p id={titleId} className="text-xs font-medium tracking-[0.28em] text-ball uppercase">
               Courtside
             </p>
-            <p className="mt-1 text-sm text-fog">Clubs, players &amp; courts</p>
+            {club ? (
+              <ClubHeader />
+            ) : (
+              <p className="mt-1 text-sm text-fog">Clubs, players &amp; courts</p>
+            )}
           </div>
 
           <nav aria-label="Main" className="flex flex-1 flex-col gap-1 px-3 py-4">
-            {APP_NAV.map((item) => (
+            {navItems.map((item) => (
               <NavLink
                 key={item.to}
                 to={item.to}
-                end={item.to === '/'}
+                end={item.to === homePath}
                 onClick={closeMenu}
                 className={({ isActive }) =>
                   [
@@ -93,7 +101,19 @@ export function AppShell() {
             ))}
           </nav>
 
-          <div className="border-t border-line/10 px-5 py-5">
+          <div className="space-y-3 border-t border-line/10 px-5 py-5">
+            {canSwitchRole ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setMenuOpen(false)
+                  navigate('/start')
+                }}
+                className="w-full border border-line/20 px-4 py-2.5 text-sm font-medium tracking-wide text-mist uppercase transition hover:border-ball hover:text-ball"
+              >
+                Switch role
+              </button>
+            ) : null}
             <button
               type="button"
               onClick={() => mutation.mutate()}
@@ -130,6 +150,14 @@ export function AppShell() {
             <p className="text-xs font-medium tracking-[0.24em] text-ball uppercase">
               Courtside
             </p>
+            {club ? (
+              <p className="min-w-0 truncate text-sm text-mist">
+                <span aria-hidden className="text-fog">
+                  ·{' '}
+                </span>
+                {club.name}
+              </p>
+            ) : null}
           </header>
 
           <main className="flex-1 px-5 py-8 sm:px-8 lg:px-12">

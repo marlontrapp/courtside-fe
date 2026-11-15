@@ -65,9 +65,3 @@ export async function logout(): Promise<void> {
     throw new ApiError(`Logout failed (${response.status}).`, response.status)
   }
 }
-
-/** Probe session by hitting a protected endpoint. */
-export async function isAuthenticated(): Promise<boolean> {
-  const response = await apiRequest('/api/v1/courts/')
-  return response.ok
-}

@@ -5,6 +5,11 @@ import { MemoryRouter } from 'react-router-dom'
 import { vi } from 'vitest'
 
 import { AuthContext, type AuthContextValue } from '@/auth/auth-context'
+import { makeMe } from '@/test/factories'
+import {
+  WorkspaceContext,
+  type WorkspaceContextValue,
+} from '@/workspace/workspace-context'
 
 export function createTestQueryClient() {
   return new QueryClient({
@@ -17,11 +22,21 @@ export function createTestQueryClient() {
 /** Render inside the providers pages expect, with a signed-in auth context. */
 export function renderWithProviders(
   ui: ReactElement,
-  { auth, route = '/' }: { auth?: Partial<AuthContextValue>; route?: string } = {},
+  {
+    auth,
+    route = '/',
+    workspace,
+  }: {
+    auth?: Partial<AuthContextValue>
+    route?: string
+    /** Provide a workspace (club pages need one). */
+    workspace?: Partial<WorkspaceContextValue>
+  } = {},
 ) {
   const queryClient = createTestQueryClient()
   const authValue: AuthContextValue = {
     status: 'authenticated',
+    user: makeMe(),
     refresh: vi.fn(async () => {}),
     ...auth,
   }
@@ -29,7 +44,17 @@ export function renderWithProviders(
   const result = render(
     <QueryClientProvider client={queryClient}>
       <AuthContext.Provider value={authValue}>
-        <MemoryRouter initialEntries={[route]}>{ui}</MemoryRouter>
+        <WorkspaceContext.Provider
+          value={{
+            workspace: null,
+            club: null,
+            role: null,
+            setWorkspace: vi.fn(),
+            ...workspace,
+          }}
+        >
+          <MemoryRouter initialEntries={[route]}>{ui}</MemoryRouter>
+        </WorkspaceContext.Provider>
       </AuthContext.Provider>
     </QueryClientProvider>,
   )

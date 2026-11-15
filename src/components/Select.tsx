@@ -14,6 +14,8 @@ import { Spinner } from '@/components/Spinner'
 export type SelectOption = {
   value: string
   label: string
+  /** Secondary line under the label in the menu (e.g. a role or an address). */
+  description?: string
   disabled?: boolean
 }
 
@@ -52,6 +54,16 @@ type SelectBaseProps = {
   hint?: ReactNode
   className?: string
   disabled?: boolean
+  /**
+   * `field` (default): a labelled form field. `plain`: the value itself is the
+   * control (no box; the label is kept for screen readers only) — e.g. a club
+   * name that opens a club switcher.
+   */
+  variant?: 'field' | 'plain'
+  /** Extra classes for the trigger button (e.g. the plain variant's type style). */
+  triggerClassName?: string
+  /** Keep the label for screen readers only (e.g. rows under shared column headings). */
+  hideLabel?: boolean
 }
 
 export type SelectSingleProps = SelectBaseProps & {
@@ -106,7 +118,11 @@ export function Select(props: SelectProps) {
     hint,
     className,
     disabled = false,
+    variant = 'field',
+    triggerClassName,
+    hideLabel = false,
   } = props
+  const plain = variant === 'plain'
 
   const multiple = props.multiple === true
   const generatedId = useId()
@@ -245,7 +261,10 @@ export function Select(props: SelectProps) {
 
   return (
     <div className={cn('space-y-2', className)} ref={rootRef}>
-      <label htmlFor={fieldId} className="block text-sm font-medium text-mist">
+      <label
+        htmlFor={fieldId}
+        className={plain || hideLabel ? 'sr-only' : 'block text-sm font-medium text-mist'}
+      >
         {label}
       </label>
 
@@ -271,15 +290,23 @@ export function Select(props: SelectProps) {
           }}
           onKeyDown={onTriggerKeyDown}
           className={cn(
-            'w-full border border-line/20 bg-ink/40 py-3 pr-24 pl-4 text-left outline-none transition focus:border-ball/70 focus:ring-2 focus:ring-ball/30 disabled:opacity-60',
+            plain
+              ? 'w-full py-1 pr-7 text-left outline-none transition hover:text-ball focus-visible:ring-2 focus-visible:ring-ball/30 disabled:opacity-60'
+              : 'w-full border border-line/20 bg-ink/40 py-3 pr-24 pl-4 text-left outline-none transition focus:border-ball/70 focus:ring-2 focus:ring-ball/30 disabled:opacity-60',
             error ? 'border-clay/50 focus:border-clay/70 focus:ring-clay/20' : null,
             selectedValues.length === 0 ? 'text-fog' : 'text-line',
+            triggerClassName,
           )}
         >
           <span className="block truncate">{displayValue}</span>
         </button>
-        <div className="pointer-events-none absolute inset-y-0 right-2 flex items-center gap-2">
-          {clearable && selectedValues.length > 0 ? (
+        <div
+          className={cn(
+            'pointer-events-none absolute inset-y-0 flex items-center gap-2',
+            plain ? 'right-0' : 'right-2',
+          )}
+        >
+          {clearable && !plain && selectedValues.length > 0 ? (
             <button
               type="button"
               aria-label="Clear selection"
@@ -373,7 +400,14 @@ export function Select(props: SelectProps) {
                               {selected ? '✓' : null}
                             </span>
                           ) : null}
-                          <span className="min-w-0 flex-1 truncate">{option.label}</span>
+                          <span className="min-w-0 flex-1">
+                            <span className="block truncate">{option.label}</span>
+                            {option.description ? (
+                              <span className="mt-0.5 block text-xs break-words text-fog">
+                                {option.description}
+                              </span>
+                            ) : null}
+                          </span>
                           {!multiple && selected ? (
                             <span aria-hidden className="text-ball">
                               ✓

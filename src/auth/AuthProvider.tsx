@@ -1,7 +1,7 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useCallback, useMemo, type ReactNode } from 'react'
 
-import { isAuthenticated } from '@/api/auth'
+import { fetchMe } from '@/api/me'
 import { AUTH_QUERY_KEY, AuthContext, type AuthStatus } from '@/auth/auth-context'
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -9,7 +9,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const sessionQuery = useQuery({
     queryKey: AUTH_QUERY_KEY,
-    queryFn: isAuthenticated,
+    // GET /api/v1/me/ doubles as the session probe: null = signed out.
+    queryFn: fetchMe,
     staleTime: 60_000,
   })
 
@@ -23,7 +24,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await queryClient.invalidateQueries({ queryKey: AUTH_QUERY_KEY })
   }, [queryClient])
 
-  const value = useMemo(() => ({ status, refresh }), [status, refresh])
+  const user = sessionQuery.data ?? null
+  const value = useMemo(() => ({ status, user, refresh }), [status, user, refresh])
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }

@@ -6,12 +6,15 @@ export type FieldErrors = Record<string, string[]>
 export class ApiError extends Error {
   readonly status: number
   readonly fieldErrors: FieldErrors
+  /** The parsed JSON error body, for endpoints that send more than messages. */
+  readonly body: unknown
 
-  constructor(message: string, status: number, fieldErrors: FieldErrors = {}) {
+  constructor(message: string, status: number, fieldErrors: FieldErrors = {}, body?: unknown) {
     super(message)
     this.name = 'ApiError'
     this.status = status
     this.fieldErrors = fieldErrors
+    this.body = body
   }
 }
 
@@ -118,8 +121,10 @@ export async function apiJson<T>(path: string, options?: RequestOptions): Promis
   if (!response.ok) {
     let message = `Request failed (${response.status})`
     let fieldErrors: FieldErrors = {}
+    let body: unknown
     try {
       const data = (await response.json()) as unknown
+      body = data
       const detail = (data as { detail?: unknown } | null)?.detail
       if (typeof detail === 'string') {
         message = detail
@@ -130,7 +135,7 @@ export async function apiJson<T>(path: string, options?: RequestOptions): Promis
     } catch {
       // ignore non-JSON error bodies
     }
-    throw new ApiError(message, response.status, fieldErrors)
+    throw new ApiError(message, response.status, fieldErrors, body)
   }
   if (response.status === 204) return undefined as T
   return (await response.json()) as T

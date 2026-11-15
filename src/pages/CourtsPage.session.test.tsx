@@ -6,7 +6,7 @@ import { describe, expect, it } from 'vitest'
 import { AuthProvider } from '@/auth/AuthProvider'
 import { RequireAuth } from '@/auth/RequireAuth'
 import { CourtsPage } from '@/pages/CourtsPage'
-import { makeCourt, makePage } from '@/test/factories'
+import { makeCourt, makeMe, makePage } from '@/test/factories'
 import { jsonResponse, mockFetch } from '@/test/fetch'
 import { createTestQueryClient } from '@/test/render'
 
@@ -30,7 +30,11 @@ function renderApp() {
 
 describe('CourtsPage session handling', () => {
   it('renders courts for a signed-in user', async () => {
-    mockFetch(() => jsonResponse(makePage([makeCourt({ name: 'Court 1 - Guga' })])))
+    mockFetch((url) =>
+      url.pathname === '/api/v1/me/'
+        ? jsonResponse(makeMe())
+        : jsonResponse(makePage([makeCourt({ name: 'Court 1 - Guga' })])),
+    )
 
     renderApp()
 
@@ -40,11 +44,11 @@ describe('CourtsPage session handling', () => {
   })
 
   it('sends the user to sign in when the session expires', async () => {
-    let calls = 0
-    mockFetch(() =>
-      // 1st call: the session probe succeeds; afterwards the session is gone.
-      ++calls === 1
-        ? jsonResponse(makePage([]))
+    let probes = 0
+    mockFetch((url) =>
+      // The first session probe (/me) succeeds; afterwards the session is gone.
+      url.pathname === '/api/v1/me/' && ++probes === 1
+        ? jsonResponse(makeMe())
         : jsonResponse({ detail: 'Authentication credentials were not provided.' }, 403),
     )
 
