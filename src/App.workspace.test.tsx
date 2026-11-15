@@ -69,6 +69,7 @@ function mockBackend(me: Me | null) {
       const found = [jardins, lisboa, morumbi].find((item) => item.id === club[1])!
       return jsonResponse(clubDetail(found))
     }
+    if (/\/courts\/$/.test(path)) return jsonResponse([])
     if (/day-templates\/$/.test(path)) return jsonResponse([])
     return jsonResponse({ detail: 'Not found.' }, 404)
   })
@@ -167,7 +168,7 @@ describe('Choosing how to act', () => {
     expect(
       within(sidePanel()).getByText('Rua Estados Unidos, São Paulo'),
     ).toBeInTheDocument()
-    expect(navLabels()).toEqual(['Overview', 'Day templates'])
+    expect(navLabels()).toEqual(['Overview', 'Courts', 'Day templates'])
     expect(screen.getByRole('button', { name: 'Switch role' })).toBeInTheDocument()
   })
 

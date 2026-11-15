@@ -147,6 +147,16 @@ export function ClubOverviewPage() {
           {canManageSchedules(role) ? (
             <ul className="grid gap-3 sm:grid-cols-2">
               <li>
+                <SelectableCard onClick={() => navigate('/manage/courts')}>
+                  <p className="text-sm font-medium tracking-wide text-line uppercase">
+                    Courts
+                  </p>
+                  <p className="mt-1 text-sm text-mist">
+                    Add courts, set rates and surfaces, or take them offline.
+                  </p>
+                </SelectableCard>
+              </li>
+              <li>
                 <SelectableCard onClick={() => navigate('/manage/day-templates')}>
                   <p className="text-sm font-medium tracking-wide text-line uppercase">
                     Day templates

@@ -2,10 +2,14 @@ import { beforeEach, describe, expect, it } from 'vitest'
 
 import {
   conflictingBookings,
+  createClubCourt,
   createDayTemplate,
+  deleteClubCourt,
   deleteDayTemplate,
   fetchClub,
+  fetchClubCourts,
   fetchDayTemplates,
+  updateClubCourt,
   updateDayTemplate,
 } from '@/api/clubs'
 import { ApiError } from '@/api/client'
@@ -87,6 +91,81 @@ describe('clubs API', () => {
         body: { name: 'Workdays' },
       },
       { url: '/api/v1/clubs/c1/day-templates/t1/', method: 'DELETE', body: undefined },
+    ])
+  })
+
+  it('lists, creates, updates and deletes club courts', async () => {
+    const court = {
+      id: 'court-1',
+      name: 'Court 1',
+      surface_type: 'CLAY',
+      is_indoor: false,
+      is_singles_only: true,
+      has_lighting: true,
+      hourly_rate: '120.00',
+      lighting_fee: '30.00',
+      is_active: true,
+      created_at: '2030-01-01T10:00:00-03:00',
+      updated_at: '2030-01-01T10:00:00-03:00',
+    }
+    const fetchMock = mockFetch((_url, init) => {
+      if (init?.method === 'DELETE') return new Response(null, { status: 204 })
+      if (init?.method === 'PATCH') {
+        return jsonResponse({
+          ...court,
+          name: 'Court One',
+          cancelled_reservations: [],
+        })
+      }
+      if (init?.method === 'POST') return jsonResponse(court, 201)
+      return jsonResponse([court])
+    })
+
+    await expect(fetchClubCourts('c1')).resolves.toEqual([court])
+    await createClubCourt('c1', {
+      name: 'Court 1',
+      surface_type: 'CLAY',
+      is_indoor: false,
+      is_singles_only: true,
+      has_lighting: true,
+      hourly_rate: '120.00',
+      lighting_fee: '30.00',
+      is_active: true,
+    })
+    await expect(updateClubCourt('c1', 'court-1', { name: 'Court One' })).resolves.toEqual({
+      court: { ...court, name: 'Court One' },
+      cancelled: [],
+    })
+    await deleteClubCourt('c1', 'court-1')
+    await deleteClubCourt('c1', 'court-1', { force: true })
+
+    expect(calls(fetchMock)).toEqual([
+      { url: '/api/v1/clubs/c1/courts/', method: 'GET', body: undefined },
+      {
+        url: '/api/v1/clubs/c1/courts/',
+        method: 'POST',
+        body: {
+          name: 'Court 1',
+          surface_type: 'CLAY',
+          is_indoor: false,
+          is_singles_only: true,
+          has_lighting: true,
+          hourly_rate: '120.00',
+          lighting_fee: '30.00',
+          is_active: true,
+        },
+      },
+      {
+        url: '/api/v1/clubs/c1/courts/court-1/',
+        method: 'PATCH',
+        body: { name: 'Court One' },
+      },
+      { url: '/api/v1/clubs/c1/courts/court-1/', method: 'DELETE', body: undefined },
+      {
+        url: '/api/v1/clubs/c1/courts/court-1/?force=true',
+        method: 'DELETE',
+        body: undefined,
+      },
     ])
   })
 

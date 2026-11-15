@@ -47,6 +47,40 @@ export const CLUBS_QUERY_KEY = ['clubs'] as const
 export const clubQueryKey = (clubId: string) => [...CLUBS_QUERY_KEY, clubId] as const
 export const dayTemplatesQueryKey = (clubId: string) =>
   [...clubQueryKey(clubId), 'day-templates'] as const
+export const clubCourtsQueryKey = (clubId: string) =>
+  [...clubQueryKey(clubId), 'courts'] as const
+
+/** Surfaces CourtControl accepts on a managed court. */
+export const COURT_SURFACES = ['CLAY', 'HARD', 'GRASS', 'SYNTHETIC'] as const
+export type CourtSurface = (typeof COURT_SURFACES)[number]
+
+const managedCourtSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  surface_type: z.string(),
+  is_indoor: z.boolean(),
+  is_singles_only: z.boolean(),
+  has_lighting: z.boolean(),
+  /** Decimal string from CourtControl, e.g. "120.00". */
+  hourly_rate: z.string(),
+  lighting_fee: z.string(),
+  is_active: z.boolean(),
+  created_at: z.string(),
+  updated_at: z.string(),
+})
+
+export type ManagedCourt = z.infer<typeof managedCourtSchema>
+
+export type ManagedCourtInput = {
+  name: string
+  surface_type: CourtSurface
+  is_indoor: boolean
+  is_singles_only: boolean
+  has_lighting: boolean
+  hourly_rate: string
+  lighting_fee: string
+  is_active: boolean
+}
 
 function unexpected(what: string): ApiError {
   return new ApiError(
@@ -76,6 +110,9 @@ const clubPath = (clubId: string) => `/api/v1/clubs/${encodeURIComponent(clubId)
 const templatesPath = (clubId: string) => `${clubPath(clubId)}day-templates/`
 const templatePath = (clubId: string, id: string) =>
   `${templatesPath(clubId)}${encodeURIComponent(id)}/`
+const courtsPath = (clubId: string) => `${clubPath(clubId)}courts/`
+const courtPath = (clubId: string, id: string) =>
+  `${courtsPath(clubId)}${encodeURIComponent(id)}/`
 
 /** `GET /api/v1/clubs/<id>/` — any signed-in user. */
 export function fetchClub(clubId: string): Promise<ClubDetail> {
@@ -133,6 +170,66 @@ export async function updateDayTemplate(
 /** Only when no schedule or override uses it (409 otherwise). */
 export async function deleteDayTemplate(clubId: string, id: string): Promise<void> {
   await apiJson<void>(templatePath(clubId, id), { method: 'DELETE' })
+}
+
+/** Every court of the club, including inactive (club admins / site staff). */
+export function fetchClubCourts(clubId: string): Promise<ManagedCourt[]> {
+  return getParsed(courtsPath(clubId), z.array(managedCourtSchema), 'club courts')
+}
+
+export async function createClubCourt(
+  clubId: string,
+  input: ManagedCourtInput,
+): Promise<ManagedCourt> {
+  const data = await apiJson<unknown>(courtsPath(clubId), {
+    method: 'POST',
+    body: input,
+  })
+  const parsed = managedCourtSchema.safeParse(data)
+  if (!parsed.success) throw unexpected('court')
+  return parsed.data
+}
+
+export type ManagedCourtChange = {
+  court: ManagedCourt
+  /** Future bookings cancelled when deactivating with `force`. */
+  cancelled: AffectedBooking[]
+}
+
+/**
+ * Patch any subset of court settings. Deactivating with future bookings:
+ * 409 with `conflicting_reservations`, or `force` to cancel them.
+ */
+export async function updateClubCourt(
+  clubId: string,
+  id: string,
+  changes: Partial<ManagedCourtInput> & { force?: boolean },
+): Promise<ManagedCourtChange> {
+  const data = await apiJson<unknown>(courtPath(clubId, id), {
+    method: 'PATCH',
+    body: changes,
+  })
+  const parsed = managedCourtSchema
+    .extend({ cancelled_reservations: z.array(affectedBookingSchema).default([]) })
+    .safeParse(data)
+  if (!parsed.success) throw unexpected('court')
+  const { cancelled_reservations: cancelled, ...court } = parsed.data
+  return { court, cancelled }
+}
+
+/**
+ * Delete a court with no booking history. Courts with bookings: 409 (deactivate
+ * instead). Linked to booking rules: 409, or `force` to unlink first.
+ */
+export async function deleteClubCourt(
+  clubId: string,
+  id: string,
+  { force = false }: { force?: boolean } = {},
+): Promise<void> {
+  const path = force
+    ? `${courtPath(clubId, id)}?force=true`
+    : courtPath(clubId, id)
+  await apiJson<void>(path, { method: 'DELETE' })
 }
 
 /** The bookings a 409 says a change would cancel (empty for other errors). */

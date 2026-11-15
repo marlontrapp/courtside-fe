@@ -18,7 +18,7 @@ export const ROLE_LABELS: Record<ActingRole, string> = {
 }
 
 export const ROLE_DESCRIPTIONS: Record<ActingRole, string> = {
-  ADMIN: 'Run the club: schedules, day templates, court closures.',
+  ADMIN: 'Run the club: courts, schedules, day templates, closures.',
   GROUNDSKEEPER: 'Court upkeep: the schedule, repairs, unplayable courts.',
   FRONT_DESK: 'The desk: bookings for walk-in players, no-shows.',
   SITE_STAFF: 'Courtside staff: work in any club.',

@@ -4,6 +4,7 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { AuthProvider } from '@/auth/AuthProvider'
 import { RequireAuth } from '@/auth/RequireAuth'
 import { AppShell } from '@/layout/AppShell'
+import { ClubCourtsPage } from '@/pages/admin/ClubCourtsPage'
 import { ClubOverviewPage } from '@/pages/admin/ClubOverviewPage'
 import { DayTemplatesPage } from '@/pages/admin/DayTemplatesPage'
 import { BookingHistoryPage } from '@/pages/BookingHistoryPage'
@@ -50,6 +51,7 @@ export function AppRoutes() {
             <Route element={<RequireClubWorkspace />}>
               <Route path="/manage" element={<ClubOverviewPage />} />
               <Route element={<RequireScheduleRole />}>
+                <Route path="/manage/courts" element={<ClubCourtsPage />} />
                 <Route path="/manage/day-templates" element={<DayTemplatesPage />} />
               </Route>
             </Route>

@@ -42,6 +42,12 @@ export const CLUB_NAV: ClubNavItem[] = [
     description: 'The club at a glance',
   },
   {
+    to: '/manage/courts',
+    label: 'Courts',
+    description: 'Create and manage courts',
+    schedules: true,
+  },
+  {
     to: '/manage/day-templates',
     label: 'Day templates',
     description: 'Slot lists for schedules',
