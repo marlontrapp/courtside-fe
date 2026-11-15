@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it } from 'vitest'
 
 import { ApiError } from '@/api/client'
 import {
+  datesInInclusiveRange,
   deleteCourtOverride,
   fetchClubOverrides,
   fetchCourtOverrides,
@@ -129,7 +130,38 @@ describe('schedule overrides API', () => {
     expect(result.saved).toHaveLength(1)
     expect(result.conflicts).toHaveLength(1)
     expect(result.conflicts[0]?.courtId).toBe('court-2')
+    expect(result.conflicts[0]?.date).toBe('2030-01-10')
     expect(result.failures).toHaveLength(0)
     expect(result.conflicts[0]?.error).toBeInstanceOf(ApiError)
+  })
+
+  it('fans out the same override across a date range and courts', async () => {
+    expect(datesInInclusiveRange('2030-01-10', '2030-01-12')).toEqual([
+      '2030-01-10',
+      '2030-01-11',
+      '2030-01-12',
+    ])
+
+    const fetchMock = mockFetch((_url, init) => {
+      if (init?.method === 'PUT') {
+        return jsonResponse({ ...override, cancelled_reservations: [] })
+      }
+      return jsonResponse([])
+    })
+
+    const result = await setOverridesOnCourts(
+      ['court-1', 'court-2'],
+      ['2030-01-10', '2030-01-11'],
+      { day_template: null, type: 'HOLIDAY', notes: 'Closed' },
+    )
+
+    expect(result.saved).toHaveLength(4)
+    expect(result.conflicts).toHaveLength(0)
+    expect(calls(fetchMock).map((call) => call.url)).toEqual([
+      '/api/v1/courts/court-1/overrides/2030-01-10/',
+      '/api/v1/courts/court-2/overrides/2030-01-10/',
+      '/api/v1/courts/court-1/overrides/2030-01-11/',
+      '/api/v1/courts/court-2/overrides/2030-01-11/',
+    ])
   })
 })

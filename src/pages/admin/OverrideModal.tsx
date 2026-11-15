@@ -1,23 +1,27 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useId, useState } from 'react'
+import { useId, useMemo, useState } from 'react'
 
 import { COURTS_QUERY_KEY } from '@/api/courts'
 import {
   OVERRIDE_TYPES,
   clubOverridesQueryKey,
+  datesInInclusiveRange,
   dayTemplatesQueryKey,
   fetchDayTemplates,
   setOverridesOnCourts,
+  setOverridesOnTargets,
   type AffectedBooking,
   type CourtOverride,
   type ManagedCourt,
+  type OverrideTarget,
   type OverrideType,
 } from '@/api/clubs'
 import { playerDisplayName } from '@/api/reservations'
 import { useAuth } from '@/auth/auth-context'
+import { parseISODate, toISODate } from '@/components/calendarUtils'
 import { Alert } from '@/components/Alert'
 import { Button } from '@/components/Button'
-import { DateField } from '@/components/DateField'
+import { DatePicker } from '@/components/DatePicker'
 import { Modal } from '@/components/Modal'
 import { Select, type SelectOption } from '@/components/Select'
 import { TextArea } from '@/components/TextArea'
@@ -31,9 +35,18 @@ import {
 } from '@/pages/courts/format'
 
 const CLOSED = ''
+/** Guard against accidental year-long fan-outs (API is one PUT per court×day). */
+export const MAX_OVERRIDE_DAYS = 31
+
+function addDays(isoDate: string, days: number): string {
+  const date = parseISODate(isoDate)
+  date.setDate(date.getDate() + days)
+  return toISODate(date)
+}
 
 type FormState = {
-  date: string
+  dateFrom: string
+  dateTo: string
   type: OverrideType
   notes: string
   dayTemplateId: string
@@ -51,10 +64,14 @@ export type OverrideModalProps = {
   /** Prefill when editing one existing override; null = new. */
   editing: CourtOverride | null
   onClose: () => void
-  onSaved: (cancelled: AffectedBooking[], courtCount: number) => void
+  onSaved: (result: {
+    cancelled: AffectedBooking[]
+    courtCount: number
+    dayCount: number
+  }) => void
 }
 
-/** Create or replace a one-day override on one or more courts. */
+/** Create or replace a one-day (or date-range) override on one or more courts. */
 export function OverrideModal({
   clubId,
   clubTimezone,
@@ -77,7 +94,8 @@ export function OverrideModal({
   const [form, setForm] = useState<FormState>(() =>
     editing
       ? {
-          date: editing.date,
+          dateFrom: editing.date,
+          dateTo: editing.date,
           type: (OVERRIDE_TYPES as readonly string[]).includes(editing.type)
             ? (editing.type as OverrideType)
             : 'OTHER',
@@ -86,7 +104,8 @@ export function OverrideModal({
           courtIds: [editing.courtId],
         }
       : {
-          date: today,
+          dateFrom: today,
+          dateTo: today,
           type: 'OTHER',
           notes: '',
           dayTemplateId: CLOSED,
@@ -94,13 +113,20 @@ export function OverrideModal({
         },
   )
   const [localErrors, setLocalErrors] = useState<{
-    date?: string
+    dateFrom?: string
+    dateTo?: string
     courts?: string
   }>({})
   const [pendingConflicts, setPendingConflicts] = useState<AffectedBooking[]>([])
+  const [conflictTargets, setConflictTargets] = useState<OverrideTarget[]>([])
 
   const patch = <K extends keyof FormState>(key: K, value: FormState[K]) =>
     setForm((current) => ({ ...current, [key]: value }))
+
+  const dates = useMemo(
+    () => datesInInclusiveRange(form.dateFrom, isEdit ? form.dateFrom : form.dateTo),
+    [form.dateFrom, form.dateTo, isEdit],
+  )
 
   const typeOptions: SelectOption[] = OVERRIDE_TYPES.map((value) => ({
     value,
@@ -130,20 +156,10 @@ export function OverrideModal({
         notes: form.notes.trim(),
         force: false as boolean,
       }
-      let result = await setOverridesOnCourts(form.courtIds, form.date, input)
 
-      if (result.conflicts.length && force) {
-        const retry = await setOverridesOnCourts(
-          result.conflicts.map((item) => item.courtId),
-          form.date,
-          { ...input, force: true },
-        )
-        result = {
-          saved: [...result.saved, ...retry.saved],
-          conflicts: retry.conflicts,
-          failures: [...result.failures, ...retry.failures],
-        }
-      }
+      const result = force
+        ? await setOverridesOnTargets(conflictTargets, { ...input, force: true })
+        : await setOverridesOnCourts(form.courtIds, dates, input)
 
       if (result.failures.length) throw result.failures[0]!.error
 
@@ -151,16 +167,23 @@ export function OverrideModal({
         const bookings = result.conflicts.flatMap((item) => item.bookings)
         const err = result.conflicts[0]!.error
         ;(err as ApiErrorWithExtra).allConflicts = bookings
+        ;(err as ApiErrorWithExtra).conflictTargets = result.conflicts.map(
+          ({ courtId, date }) => ({ courtId, date }),
+        )
         throw err
       }
 
+      const courtCount = new Set(result.saved.map((item) => item.courtId)).size
+      const dayCount = new Set(result.saved.map((item) => item.date)).size
       return {
         cancelled: result.saved.flatMap((item) => item.change.cancelled),
-        courtCount: result.saved.length,
+        courtCount,
+        dayCount,
       }
     },
     onSuccess: (result) => {
       setPendingConflicts([])
+      setConflictTargets([])
       void queryClient.invalidateQueries({ queryKey: clubOverridesQueryKey(clubId) })
       void queryClient.invalidateQueries({ queryKey: COURTS_QUERY_KEY })
       for (const courtId of form.courtIds) {
@@ -168,15 +191,16 @@ export function OverrideModal({
           queryKey: ['courts', courtId, 'overrides'],
         })
       }
-      onSaved(result.cancelled, result.courtCount)
+      onSaved(result)
     },
     onError: (error) => {
       const mapped = overrideErrors(error)
       if (mapped.sessionExpired) void refreshSession()
-      const extra = (error as ApiErrorWithExtra).allConflicts
-      if (extra?.length) setPendingConflicts(extra)
+      const extra = error as ApiErrorWithExtra
+      if (extra.allConflicts?.length) setPendingConflicts(extra.allConflicts)
       else if (mapped.conflicts?.length) setPendingConflicts(mapped.conflicts)
       else setPendingConflicts([])
+      setConflictTargets(extra.conflictTargets ?? [])
     },
   })
 
@@ -186,18 +210,36 @@ export function OverrideModal({
 
   const submit = (force = false) => {
     const nextLocal: typeof localErrors = {}
-    if (!form.date) nextLocal.date = 'Pick a date.'
-    else if (form.date < today) nextLocal.date = 'Overrides can only start today or later.'
+    if (!form.dateFrom) nextLocal.dateFrom = 'Pick a start date.'
+    else if (form.dateFrom < today) nextLocal.dateFrom = 'Overrides can only start today or later.'
+
+    if (!isEdit) {
+      if (!form.dateTo) nextLocal.dateTo = 'Pick an end date.'
+      else if (form.dateTo < form.dateFrom) {
+        nextLocal.dateTo = 'End date must be on or after the start date.'
+      } else if (dates.length > MAX_OVERRIDE_DAYS) {
+        nextLocal.dateTo = `Keep the range to ${MAX_OVERRIDE_DAYS} days or fewer.`
+      }
+    }
+
     if (!form.courtIds.length) nextLocal.courts = 'Pick at least one court.'
     setLocalErrors(nextLocal)
     if (Object.keys(nextLocal).length) return
-    if (!force) setPendingConflicts([])
+    if (!force) {
+      setPendingConflicts([])
+      setConflictTargets([])
+    }
     mutation.mutate({ force })
   }
 
   const close = () => {
     if (!mutation.isPending) onClose()
   }
+
+  const dayHint =
+    !isEdit && dates.length > 1
+      ? `${dates.length} days · ${form.courtIds.length || 0} court${form.courtIds.length === 1 ? '' : 's'}`
+      : undefined
 
   return (
     <Modal
@@ -246,14 +288,55 @@ export function OverrideModal({
           </ul>
         ) : null}
 
-        <DateField
-          label="Date"
-          value={form.date}
-          min={today}
-          onChange={(date) => patch('date', date)}
-          error={localErrors.date ?? serverErrors.date}
-          hint={`Club timezone: ${clubTimezone.replace(/_/g, ' ')}`}
-        />
+        {isEdit ? (
+          <DatePicker
+            label="Date"
+            value={form.dateFrom}
+            min={today}
+            clearable={false}
+            onChange={(date) => {
+              patch('dateFrom', date)
+              patch('dateTo', date)
+            }}
+            error={localErrors.dateFrom ?? serverErrors.date}
+            hint={`Club timezone: ${clubTimezone.replace(/_/g, ' ')}`}
+          />
+        ) : (
+          <div className="grid gap-5 sm:grid-cols-2">
+            <DatePicker
+              label="From"
+              value={form.dateFrom}
+              min={today}
+              clearable={false}
+              onChange={(date) => {
+                patch('dateFrom', date)
+                if (!form.dateTo || form.dateTo < date) patch('dateTo', date)
+                else if (form.dateTo > addDays(date, MAX_OVERRIDE_DAYS - 1)) {
+                  patch('dateTo', addDays(date, MAX_OVERRIDE_DAYS - 1))
+                }
+              }}
+              error={localErrors.dateFrom ?? serverErrors.date}
+            />
+            <DatePicker
+              label="Until"
+              value={form.dateTo}
+              min={form.dateFrom || today}
+              max={
+                form.dateFrom
+                  ? addDays(form.dateFrom, MAX_OVERRIDE_DAYS - 1)
+                  : undefined
+              }
+              clearable={false}
+              onChange={(date) => patch('dateTo', date)}
+              error={localErrors.dateTo}
+              hint={
+                dayHint
+                  ? `${dayHint}. Club timezone: ${clubTimezone.replace(/_/g, ' ')}`
+                  : `Up to ${MAX_OVERRIDE_DAYS} days. Club timezone: ${clubTimezone.replace(/_/g, ' ')}`
+              }
+            />
+          </div>
+        )}
 
         <Select
           label="Reason"
@@ -275,13 +358,13 @@ export function OverrideModal({
         />
 
         <Select
-          label="Slots that day"
+          label="Slots those days"
           options={templateOptions}
           value={form.dayTemplateId}
           onChange={(value) => patch('dayTemplateId', value)}
           clearable={false}
           error={serverErrors.day_template}
-          hint="Closed removes every slot; a day template replaces the weekly schedule for that date."
+          hint="Closed removes every slot; a day template replaces the weekly schedule for each date."
         />
 
         <div className="space-y-2">
@@ -296,7 +379,7 @@ export function OverrideModal({
             hint={
               isEdit
                 ? 'Editing applies to the courts you leave selected.'
-                : 'Same override is applied to every selected court.'
+                : 'Same override is applied to every selected court on every day in the range.'
             }
           />
           {!isEdit && courts.length > 1 ? (
@@ -338,4 +421,7 @@ export function OverrideModal({
   )
 }
 
-type ApiErrorWithExtra = { allConflicts?: AffectedBooking[] }
+type ApiErrorWithExtra = {
+  allConflicts?: AffectedBooking[]
+  conflictTargets?: OverrideTarget[]
+}
