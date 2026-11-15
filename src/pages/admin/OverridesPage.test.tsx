@@ -50,7 +50,7 @@ function renderPage() {
   })
 }
 
-const dialog = () => screen.getByRole('dialog')
+const modal = (name = /override/i) => screen.getByRole('dialog', { name })
 
 describe('Overrides', () => {
   beforeEach(() => {
@@ -58,7 +58,7 @@ describe('Overrides', () => {
     freezeDate('2030-01-08T12:00:00-03:00')
   })
 
-  it('lists upcoming overrides and creates one on two courts', async () => {
+  it('lists upcoming overrides and creates one on two courts across a date range', async () => {
     const user = userEvent.setup()
     const overridesByCourt: Record<string, unknown[]> = {
       'court-1': [],
@@ -85,7 +85,6 @@ describe('Overrides', () => {
           notes: string
           day_template: string | null
         }
-        const courtName = courtId === 'court-1' ? clay.name : hard.name
         const created = {
           date,
           type: body.type,
@@ -98,7 +97,11 @@ describe('Overrides', () => {
           updated_at: '2030-01-08T12:00:00-03:00',
           cancelled_reservations: [],
         }
-        overridesByCourt[courtId] = [created]
+        const existing = overridesByCourt[courtId] ?? []
+        overridesByCourt[courtId] = [
+          ...existing.filter((item) => (item as { date: string }).date !== date),
+          created,
+        ]
         return jsonResponse(created)
       }
 
@@ -110,33 +113,41 @@ describe('Overrides', () => {
     expect(await screen.findByText('No upcoming overrides')).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'New override' }))
 
-    await within(dialog()).findByLabelText('Date')
+    const form = modal('New override')
+    await within(form).findByRole('button', { name: 'From' })
+    await user.click(within(form).getByRole('button', { name: 'Until' }))
+    const untilCalendar = screen.getByRole('dialog', { name: 'Until' })
+    await user.click(within(untilCalendar).getByRole('button', { name: '2030-01-09' }))
 
-    await user.click(within(dialog()).getByRole('button', { name: 'Reason' }))
+    await user.click(within(form).getByRole('button', { name: 'Reason' }))
     await user.click(
       within(screen.getByRole('listbox', { name: 'Reason' })).getByRole('option', {
         name: 'Weather',
       }),
     )
 
-    await user.type(within(dialog()).getByLabelText(/Notes/), 'Rain all day')
+    await user.type(within(form).getByLabelText(/Notes/), 'Rain all day')
 
-    await user.click(within(dialog()).getByRole('button', { name: 'Create override' }))
+    await user.click(within(form).getByRole('button', { name: 'Create override' }))
 
-    expect(await screen.findByRole('alert')).toHaveTextContent('Saved override on 2 courts.')
-    expect(
-      await screen.findByRole('article', { name: /Court 1 - Guga/ }),
-    ).toBeInTheDocument()
-    expect(
-      screen.getByRole('article', { name: /Court 2 - Hard/ }),
-    ).toBeInTheDocument()
-
-    const puts = requestedUrls(fetchMock).filter((url) =>
-      url.includes('/overrides/2030-01-08/'),
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Saved override on 2 courts across 2 days.',
     )
-    expect(puts).toEqual([
+    expect(
+      await screen.findByRole('article', { name: /Court 1 - Guga · 2030-01-08/ }),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole('article', { name: /Court 2 - Hard · 2030-01-09/ }),
+    ).toBeInTheDocument()
+
+    const puts = requestedUrls(fetchMock).filter((url) => url.includes('/overrides/'))
+    expect(puts.filter((url) => url.includes('/overrides/2030-01-08/'))).toEqual([
       '/api/v1/courts/court-1/overrides/2030-01-08/',
       '/api/v1/courts/court-2/overrides/2030-01-08/',
+    ])
+    expect(puts.filter((url) => url.includes('/overrides/2030-01-09/'))).toEqual([
+      '/api/v1/courts/court-1/overrides/2030-01-09/',
+      '/api/v1/courts/court-2/overrides/2030-01-09/',
     ])
   })
 
@@ -171,7 +182,9 @@ describe('Overrides', () => {
     await user.click(
       within(card).getByRole('button', { name: 'Delete override for Court 1 - Guga' }),
     )
-    await user.click(within(dialog()).getByRole('button', { name: 'Remove override' }))
+    await user.click(
+      within(modal(/Remove override/i)).getByRole('button', { name: 'Remove override' }),
+    )
 
     expect(await screen.findByRole('alert')).toHaveTextContent(/Removed override/)
     expect(await screen.findByText('No upcoming overrides')).toBeInTheDocument()

@@ -118,14 +118,14 @@ export function OverridesPage() {
     content = (
       <EmptyState
         title="Add a court first"
-        description="Overrides change one date for one or more courts. Create a court, then come back here."
+        description="Overrides change one date or a range for one or more courts. Create a court, then come back here."
       />
     )
   } else if (overrides.length === 0) {
     content = (
       <EmptyState
         title="No upcoming overrides"
-        description="Close a court for weather, swap in a tournament template, or mark a holiday — for one court or many on the same date."
+        description="Close a court for weather, swap in a tournament template, or mark a holiday — for one day or a range, on one court or many."
         action={<Button onClick={newOverride}>New override</Button>}
       />
     )
@@ -162,7 +162,7 @@ export function OverridesPage() {
       <PageHeader
         eyebrow="Schedules"
         title="Overrides"
-        description={`One-day changes at ${club.name} — weather, tournaments, holidays — for one court or several.`}
+        description={`Date overrides at ${club.name} — weather, tournaments, holidays — for one court or several, one day or a range.`}
         actions={
           courts.length && overrides.length ? (
             <Button onClick={newOverride}>New override</Button>
@@ -203,12 +203,14 @@ export function OverridesPage() {
           courts={courts}
           editing={editing === 'new' ? null : editing}
           onClose={() => setEditing(null)}
-          onSaved={(cancelled, courtCount) => {
+          onSaved={({ cancelled, courtCount, dayCount }) => {
             setEditing(null)
-            setNotice({
-              text: `Saved override on ${plural(courtCount, 'court')}.`,
-              cancelled,
-            })
+            const courtsText = plural(courtCount, 'court')
+            const text =
+              dayCount > 1
+                ? `Saved override on ${courtsText} across ${plural(dayCount, 'day')}.`
+                : `Saved override on ${courtsText}.`
+            setNotice({ text, cancelled })
           }}
         />
       ) : null}

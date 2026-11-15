@@ -535,35 +535,86 @@ export async function deleteCourtOverride(
   return parsed.data.cancelled_reservations
 }
 
+/** Inclusive YYYY-MM-DD list from `from` through `to` (empty if inverted). */
+export function datesInInclusiveRange(from: string, to: string): string[] {
+  if (!from || !to || to < from) return []
+  const dates: string[] = []
+  const cursor = new Date(`${from}T12:00:00`)
+  const end = new Date(`${to}T12:00:00`)
+  while (cursor <= end) {
+    const y = cursor.getFullYear()
+    const m = String(cursor.getMonth() + 1).padStart(2, '0')
+    const d = String(cursor.getDate()).padStart(2, '0')
+    dates.push(`${y}-${m}-${d}`)
+    cursor.setDate(cursor.getDate() + 1)
+  }
+  return dates
+}
+
+export type OverrideTarget = { courtId: string; date: string }
+
 /**
- * Apply the same override to several courts. Stops on the first hard failure
- * that isn't a booking conflict; conflicts are collected so the UI can offer force.
+ * Apply the same override to several courts × dates. Stops collecting further
+ * courts/dates on the first hard failure that isn't a booking conflict;
+ * conflicts are collected so the UI can offer force.
  */
 export async function setOverridesOnCourts(
   courtIds: string[],
-  date: string,
+  dates: string | string[],
   input: OverrideInput,
 ): Promise<{
-  saved: Array<{ courtId: string; change: OverrideChange }>
-  conflicts: Array<{ courtId: string; bookings: AffectedBooking[]; error: ApiError }>
-  failures: Array<{ courtId: string; error: unknown }>
+  saved: Array<OverrideTarget & { change: OverrideChange }>
+  conflicts: Array<OverrideTarget & { bookings: AffectedBooking[]; error: ApiError }>
+  failures: Array<OverrideTarget & { error: unknown }>
 }> {
-  const saved: Array<{ courtId: string; change: OverrideChange }> = []
-  const conflicts: Array<{ courtId: string; bookings: AffectedBooking[]; error: ApiError }> = []
-  const failures: Array<{ courtId: string; error: unknown }> = []
+  const dayList = Array.isArray(dates) ? dates : [dates]
+  const saved: Array<OverrideTarget & { change: OverrideChange }> = []
+  const conflicts: Array<OverrideTarget & { bookings: AffectedBooking[]; error: ApiError }> = []
+  const failures: Array<OverrideTarget & { error: unknown }> = []
 
-  for (const courtId of courtIds) {
-    try {
-      const change = await setCourtOverride(courtId, date, input)
-      saved.push({ courtId, change })
-    } catch (error) {
-      const bookings = conflictingBookings(error)
-      if (bookings.length && error instanceof ApiError) {
-        conflicts.push({ courtId, bookings, error })
-      } else {
-        failures.push({ courtId, error })
+  for (const date of dayList) {
+    for (const courtId of courtIds) {
+      try {
+        const change = await setCourtOverride(courtId, date, input)
+        saved.push({ courtId, date, change })
+      } catch (error) {
+        const bookings = conflictingBookings(error)
+        if (bookings.length && error instanceof ApiError) {
+          conflicts.push({ courtId, date, bookings, error })
+        } else {
+          failures.push({ courtId, date, error })
+          return { saved, conflicts, failures }
+        }
       }
     }
+  }
+  return { saved, conflicts, failures }
+}
+
+/** Re-apply with force=true only for the given court+date pairs. */
+export async function setOverridesOnTargets(
+  targets: OverrideTarget[],
+  input: OverrideInput,
+): Promise<{
+  saved: Array<OverrideTarget & { change: OverrideChange }>
+  conflicts: Array<OverrideTarget & { bookings: AffectedBooking[]; error: ApiError }>
+  failures: Array<OverrideTarget & { error: unknown }>
+}> {
+  const byDate = new Map<string, string[]>()
+  for (const target of targets) {
+    const list = byDate.get(target.date) ?? []
+    list.push(target.courtId)
+    byDate.set(target.date, list)
+  }
+  const saved: Array<OverrideTarget & { change: OverrideChange }> = []
+  const conflicts: Array<OverrideTarget & { bookings: AffectedBooking[]; error: ApiError }> = []
+  const failures: Array<OverrideTarget & { error: unknown }> = []
+  for (const [date, courtIds] of byDate) {
+    const result = await setOverridesOnCourts(courtIds, date, input)
+    saved.push(...result.saved)
+    conflicts.push(...result.conflicts)
+    failures.push(...result.failures)
+    if (failures.length) break
   }
   return { saved, conflicts, failures }
 }
