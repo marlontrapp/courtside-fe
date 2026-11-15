@@ -50,6 +50,8 @@ Superuser: `admin@example.com` / `admin123`
 | `npm run build`| Typecheck + production build |
 | `npm run preview` | Preview production build |
 | `npm run lint` | Oxlint               |
+| `npm test`     | Vitest + Testing Library (jsdom), single run |
+| `npm run test:watch` | Vitest in watch mode |
 | `npm run format` | Prettier write     |
 | `npm run storybook` | Component Storybook on :6006 |
 | `npm run build-storybook` | Static Storybook build |
@@ -68,11 +70,12 @@ Open http://localhost:6006
 
 ```
 src/
-  api/          # fetch client + session auth helpers
+  api/          # fetch client, session auth, courts + reservations API
   auth/         # AuthProvider + RequireAuth
   components/   # Shared UI primitives + *.stories.tsx
   layout/       # Authenticated app shell + side nav
-  pages/        # Login, home, Clubs/Players/Courts placeholders
+  pages/        # Login, Home (+ home/: upcoming + cancel), Courts + booking (+ courts/), Booking history (+ history/), Clubs/Players placeholders
+  test/         # Vitest setup, fetch mock, fixtures, render helper
   App.tsx       # Router + providers
 .storybook/     # Storybook Vite config + preview decorators
 ```

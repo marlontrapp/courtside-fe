@@ -18,6 +18,8 @@
 
 @layer base {
   :root {
+    /* Dark-only UI: native controls (date pickers, scrollbars) render dark too. */
+    color-scheme: dark;
     color: var(--color-line);
     background-color: var(--color-ink);
     font-family: var(--font-sans);
@@ -29,6 +31,46 @@
 
   * {
     box-sizing: border-box;
+    /* Not inherited, so set everywhere: page, dialogs, dropdown menus. */
+    scrollbar-width: thin;
+  }
+
+  /*
+   * Scrollbars in the Courtside palette: a muted fog thumb on a transparent
+   * track (the ink/court background shows through). 55% fog keeps ~3:1
+   * contrast on ink, so it stays findable. Inherited by every scroll area.
+   * Standard properties: Chrome/Edge 121+, Firefox.
+   */
+  :root {
+    scrollbar-color: color-mix(in srgb, var(--color-fog) 55%, transparent) transparent;
+  }
+
+  /* Safari doesn't support scrollbar-color yet: same look via ::-webkit-scrollbar. */
+  @supports not (scrollbar-color: auto) {
+    ::-webkit-scrollbar {
+      width: 10px;
+      height: 10px;
+    }
+
+    ::-webkit-scrollbar-track,
+    ::-webkit-scrollbar-corner {
+      background: transparent;
+    }
+
+    /* Square like the rest of the UI; the transparent border keeps it slim. */
+    ::-webkit-scrollbar-thumb {
+      background-color: color-mix(in srgb, var(--color-fog) 55%, transparent);
+      background-clip: padding-box;
+      border: 3px solid transparent;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background-color: var(--color-fog);
+    }
+
+    ::-webkit-scrollbar-thumb:active {
+      background-color: var(--color-ball);
+    }
   }
 
   html,

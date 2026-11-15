@@ -87,7 +87,10 @@ export function FilterGroup<T extends string = string>(props: FilterGroupProps<T
                 props.onChange(option.value)
               }}
               className={cn(
-                'px-3 py-2 text-xs font-medium tracking-wide uppercase transition disabled:opacity-40',
+                // `grow`: when the chips wrap, each row fills the bordered box instead of
+                // leaving empty space at its end. On one row the box already fits the
+                // chips, so there's nothing to grow into.
+                'grow px-3 py-2 text-center text-xs font-medium tracking-wide uppercase transition disabled:opacity-40',
                 selected
                   ? 'bg-ball/15 text-ball'
                   : 'text-mist hover:bg-line/5 hover:text-line',

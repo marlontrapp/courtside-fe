@@ -58,6 +58,40 @@ export const MultiFilter: Story = {
   },
 }
 
+export const MultiFilterWrapping: Story = {
+  name: 'Filter · wrapping (narrow space)',
+  parameters: {
+    docs: {
+      description: {
+        story:
+          'When the chips don’t fit on one line they wrap, and each row stretches to fill the bordered box — no empty space at the end of a row.',
+      },
+    },
+  },
+  render: function Render() {
+    const [value, setValue] = useState<string[]>(['HARD', 'SYNTHETIC'])
+    return (
+      <div className="w-64">
+        <FilterGroup
+          multiple
+          label="Surface"
+          aria-label="Surface"
+          exclusiveValue="ALL"
+          value={value.length ? value : ['ALL']}
+          onChange={(next) => setValue(next.filter((item) => item !== 'ALL'))}
+          options={[
+            { value: 'ALL', label: 'All' },
+            { value: 'CLAY', label: 'Clay' },
+            { value: 'HARD', label: 'Hard' },
+            { value: 'GRASS', label: 'Grass' },
+            { value: 'SYNTHETIC', label: 'Synthetic' },
+          ]}
+        />
+      </div>
+    )
+  },
+}
+
 export const MultiFilterAmenities: Story = {
   name: 'Filter · amenities',
   render: function Render() {
