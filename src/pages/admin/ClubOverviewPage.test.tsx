@@ -81,15 +81,29 @@ describe('Club overview', () => {
     expect(within(settings).getByText('Until the booking starts')).toBeInTheDocument()
   })
 
-  it('offers the schedule tools to admins', async () => {
+  it('offers court and schedule tools to admins', async () => {
     const user = userEvent.setup()
     mockFetch(() => jsonResponse(detail))
     renderOverview('ADMIN')
 
     const tools = screen.getByRole('region', { name: 'Tools' })
+    expect(within(tools).getByRole('button', { name: /Courts/ })).toBeInTheDocument()
     await user.click(within(tools).getByRole('button', { name: /Day templates/ }))
 
     expect(screen.getByTestId('location')).toHaveTextContent('/manage/day-templates')
+  })
+
+  it('opens courts from the overview', async () => {
+    const user = userEvent.setup()
+    mockFetch(() => jsonResponse(detail))
+    renderOverview('ADMIN')
+
+    await user.click(
+      within(screen.getByRole('region', { name: 'Tools' })).getByRole('button', {
+        name: /Courts/,
+      }),
+    )
+    expect(screen.getByTestId('location')).toHaveTextContent('/manage/courts')
   })
 
   it('is honest with roles CourtControl has no tools for yet', () => {
