@@ -7,6 +7,7 @@ import { AppShell } from '@/layout/AppShell'
 import { ClubCourtsPage } from '@/pages/admin/ClubCourtsPage'
 import { ClubOverviewPage } from '@/pages/admin/ClubOverviewPage'
 import { DayTemplatesPage } from '@/pages/admin/DayTemplatesPage'
+import { OverridesPage } from '@/pages/admin/OverridesPage'
 import { BookingHistoryPage } from '@/pages/BookingHistoryPage'
 import { ClubsPage } from '@/pages/ClubsPage'
 import { CourtsPage } from '@/pages/CourtsPage'
@@ -53,6 +54,7 @@ export function AppRoutes() {
               <Route element={<RequireScheduleRole />}>
                 <Route path="/manage/courts" element={<ClubCourtsPage />} />
                 <Route path="/manage/day-templates" element={<DayTemplatesPage />} />
+                <Route path="/manage/overrides" element={<OverridesPage />} />
               </Route>
             </Route>
           </Route>

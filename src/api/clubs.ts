@@ -404,3 +404,166 @@ export function sharedDayTemplate(byDay: DayTemplatesByWeekday): string | null {
   const first = byDay.MONDAY
   return WEEKDAYS.every((day) => byDay[day] === first) ? first : null
 }
+
+// --- One-day schedule overrides --------------------------------------------------------
+
+export const OVERRIDE_TYPES = [
+  'MAINTENANCE',
+  'WEATHER',
+  'TOURNAMENT',
+  'EVENT',
+  'HOLIDAY',
+  'OTHER',
+] as const
+
+export type OverrideType = (typeof OVERRIDE_TYPES)[number]
+
+const overrideSchema = z.object({
+  date: z.string(),
+  type: z.string(),
+  notes: z.string(),
+  day_template: z.object({ id: z.string(), name: z.string() }).nullable(),
+  slots: z
+    .array(z.object({ start: z.string(), end: z.string() }))
+    .default([]),
+  created_at: z.string(),
+  updated_at: z.string(),
+})
+
+export type ScheduleOverride = z.infer<typeof overrideSchema>
+
+/** An override plus which court it belongs to (for club-wide listing). */
+export type CourtOverride = ScheduleOverride & {
+  courtId: string
+  courtName: string
+}
+
+export type OverrideInput = {
+  day_template: string | null
+  type: OverrideType
+  notes?: string
+  force?: boolean
+}
+
+export type OverrideChange = {
+  override: ScheduleOverride
+  cancelled: AffectedBooking[]
+}
+
+const overridesPath = (courtId: string) =>
+  `/api/v1/courts/${encodeURIComponent(courtId)}/overrides/`
+const overridePath = (courtId: string, date: string) =>
+  `${overridesPath(courtId)}${encodeURIComponent(date)}/`
+
+export const courtOverridesQueryKey = (courtId: string) =>
+  ['courts', courtId, 'overrides'] as const
+export const clubOverridesQueryKey = (clubId: string) =>
+  [...clubQueryKey(clubId), 'overrides'] as const
+
+/** Upcoming overrides for one court (from today by default). */
+export function fetchCourtOverrides(
+  courtId: string,
+  range: { date_from?: string; date_to?: string } = {},
+): Promise<ScheduleOverride[]> {
+  const params = new URLSearchParams()
+  if (range.date_from) params.set('date_from', range.date_from)
+  if (range.date_to) params.set('date_to', range.date_to)
+  const query = params.toString()
+  const path = query ? `${overridesPath(courtId)}?${query}` : overridesPath(courtId)
+  return getParsed(path, z.array(overrideSchema), 'schedule overrides')
+}
+
+/**
+ * Upcoming overrides across the club's courts, oldest date first.
+ * Fans out one list request per court (CourtControl has no club-wide list).
+ */
+export async function fetchClubOverrides(
+  courts: Pick<ManagedCourt, 'id' | 'name'>[],
+): Promise<CourtOverride[]> {
+  const pages = await Promise.all(
+    courts.map(async (court) => {
+      const overrides = await fetchCourtOverrides(court.id)
+      return overrides.map(
+        (override): CourtOverride => ({
+          ...override,
+          courtId: court.id,
+          courtName: court.name,
+        }),
+      )
+    }),
+  )
+  return pages.flat().sort((a, b) => {
+    const byDate = a.date.localeCompare(b.date)
+    if (byDate) return byDate
+    return a.courtName.localeCompare(b.courtName) || a.courtId.localeCompare(b.courtId)
+  })
+}
+
+/** Create or replace the override for one court on one date. */
+export async function setCourtOverride(
+  courtId: string,
+  date: string,
+  input: OverrideInput,
+): Promise<OverrideChange> {
+  const data = await apiJson<unknown>(overridePath(courtId, date), {
+    method: 'PUT',
+    body: input,
+  })
+  const parsed = overrideSchema
+    .extend({ cancelled_reservations: z.array(affectedBookingSchema).default([]) })
+    .safeParse(data)
+  if (!parsed.success) throw unexpected('schedule override')
+  const { cancelled_reservations: cancelled, ...override } = parsed.data
+  return { override, cancelled }
+}
+
+/** Remove an override (today or later); the weekly schedule applies again. */
+export async function deleteCourtOverride(
+  courtId: string,
+  date: string,
+  { force = false }: { force?: boolean } = {},
+): Promise<AffectedBooking[]> {
+  const path = force
+    ? `${overridePath(courtId, date)}?force=true`
+    : overridePath(courtId, date)
+  const data = await apiJson<unknown>(path, { method: 'DELETE' })
+  if (data == null) return []
+  const parsed = z
+    .object({ cancelled_reservations: z.array(affectedBookingSchema).default([]) })
+    .safeParse(data)
+  if (!parsed.success) throw unexpected('schedule override')
+  return parsed.data.cancelled_reservations
+}
+
+/**
+ * Apply the same override to several courts. Stops on the first hard failure
+ * that isn't a booking conflict; conflicts are collected so the UI can offer force.
+ */
+export async function setOverridesOnCourts(
+  courtIds: string[],
+  date: string,
+  input: OverrideInput,
+): Promise<{
+  saved: Array<{ courtId: string; change: OverrideChange }>
+  conflicts: Array<{ courtId: string; bookings: AffectedBooking[]; error: ApiError }>
+  failures: Array<{ courtId: string; error: unknown }>
+}> {
+  const saved: Array<{ courtId: string; change: OverrideChange }> = []
+  const conflicts: Array<{ courtId: string; bookings: AffectedBooking[]; error: ApiError }> = []
+  const failures: Array<{ courtId: string; error: unknown }> = []
+
+  for (const courtId of courtIds) {
+    try {
+      const change = await setCourtOverride(courtId, date, input)
+      saved.push({ courtId, change })
+    } catch (error) {
+      const bookings = conflictingBookings(error)
+      if (bookings.length && error instanceof ApiError) {
+        conflicts.push({ courtId, bookings, error })
+      } else {
+        failures.push({ courtId, error })
+      }
+    }
+  }
+  return { saved, conflicts, failures }
+}

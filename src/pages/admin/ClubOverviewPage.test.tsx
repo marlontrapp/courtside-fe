@@ -106,6 +106,19 @@ describe('Club overview', () => {
     expect(screen.getByTestId('location')).toHaveTextContent('/manage/courts')
   })
 
+  it('opens overrides from the overview', async () => {
+    const user = userEvent.setup()
+    mockFetch(() => jsonResponse(detail))
+    renderOverview('ADMIN')
+
+    await user.click(
+      within(screen.getByRole('region', { name: 'Tools' })).getByRole('button', {
+        name: /Overrides/,
+      }),
+    )
+    expect(screen.getByTestId('location')).toHaveTextContent('/manage/overrides')
+  })
+
   it('is honest with roles CourtControl has no tools for yet', () => {
     mockFetch(() => jsonResponse(detail))
     renderOverview('GROUNDSKEEPER')

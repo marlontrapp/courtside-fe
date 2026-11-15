@@ -71,6 +71,7 @@ function mockBackend(me: Me | null) {
     }
     if (/\/courts\/$/.test(path)) return jsonResponse([])
     if (/day-templates\/$/.test(path)) return jsonResponse([])
+    if (/\/overrides\/?$/.test(path) || /\/overrides\?/.test(path)) return jsonResponse([])
     return jsonResponse({ detail: 'Not found.' }, 404)
   })
   return state
@@ -168,7 +169,7 @@ describe('Choosing how to act', () => {
     expect(
       within(sidePanel()).getByText('Rua Estados Unidos, São Paulo'),
     ).toBeInTheDocument()
-    expect(navLabels()).toEqual(['Overview', 'Courts', 'Day templates'])
+    expect(navLabels()).toEqual(['Overview', 'Courts', 'Day templates', 'Overrides'])
     expect(screen.getByRole('button', { name: 'Switch role' })).toBeInTheDocument()
   })
 

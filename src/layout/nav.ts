@@ -53,4 +53,10 @@ export const CLUB_NAV: ClubNavItem[] = [
     description: 'Slot lists for schedules',
     schedules: true,
   },
+  {
+    to: '/manage/overrides',
+    label: 'Overrides',
+    description: 'One-day schedule changes',
+    schedules: true,
+  },
 ]

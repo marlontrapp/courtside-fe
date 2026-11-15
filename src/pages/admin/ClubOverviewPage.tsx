@@ -166,6 +166,16 @@ export function ClubOverviewPage() {
                   </p>
                 </SelectableCard>
               </li>
+              <li>
+                <SelectableCard onClick={() => navigate('/manage/overrides')}>
+                  <p className="text-sm font-medium tracking-wide text-line uppercase">
+                    Overrides
+                  </p>
+                  <p className="mt-1 text-sm text-mist">
+                    Close or re-slot one day for one court or several — weather, events, holidays.
+                  </p>
+                </SelectableCard>
+              </li>
             </ul>
           ) : (
             <Alert tone="info">
