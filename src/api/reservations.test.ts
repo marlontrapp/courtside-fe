@@ -34,6 +34,25 @@ describe('fetchUpcomingReservations', () => {
       /unexpected reservations response/i,
     )
   })
+
+  it('rejects the legacy email-string player shape from older CourtControl', async () => {
+    const page = makeReservationPage([makeReservation()])
+    mockFetch(() =>
+      jsonResponse({
+        ...page,
+        results: [
+          {
+            ...page.results[0],
+            primary_player: 'player@example.com',
+            guests: ['ana@example.com'],
+          },
+        ],
+      }),
+    )
+    await expect(fetchUpcomingReservations()).rejects.toThrow(
+      /unexpected reservations response/i,
+    )
+  })
 })
 
 describe('createReservation', () => {

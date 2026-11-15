@@ -1,8 +1,17 @@
 import type { ClubSummary, Court, CourtPage } from '@/api/courts'
-import type { Reservation, ReservationPage } from '@/api/reservations'
+import type { PlayerSummary, Reservation, ReservationPage } from '@/api/reservations'
 
 let sequence = 0
 const nextId = (prefix: string) => `${prefix}-${++sequence}`
+
+export function makePlayer(overrides: Partial<PlayerSummary> = {}): PlayerSummary {
+  return {
+    id: nextId('player'),
+    first_name: 'Pat',
+    last_name: 'Player',
+    ...overrides,
+  }
+}
 
 export function makeClub(overrides: Partial<ClubSummary> = {}): ClubSummary {
   const id = overrides.id ?? nextId('club')
@@ -70,7 +79,7 @@ export function makeReservation(overrides: Partial<Reservation> = {}): Reservati
     status: 'CONFIRMED',
     state: 'upcoming',
     role: 'owner',
-    primary_player: 'player@example.com',
+    primary_player: makePlayer({ id: 'player-self', first_name: 'Pat', last_name: 'Player' }),
     includes_lighting: false,
     total_price: '120.00',
     guests: [],

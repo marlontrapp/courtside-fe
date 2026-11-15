@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it } from 'vitest'
 
 import type { Reservation } from '@/api/reservations'
 import { HomePage } from '@/pages/HomePage'
-import { makeReservation, makeReservationPage } from '@/test/factories'
+import { makePlayer, makeReservation, makeReservationPage } from '@/test/factories'
 import { jsonResponse, mockFetch, requestedUrls } from '@/test/fetch'
 import { LocationProbe } from '@/test/LocationProbe'
 import { freezeDate, renderWithProviders } from '@/test/render'
@@ -73,7 +73,10 @@ describe('Home · upcoming reservations', () => {
           makeReservation({
             booking_type: 'DOUBLES',
             includes_lighting: true,
-            guests: ['ana@example.com', 'bruno@example.com'],
+            guests: [
+              makePlayer({ first_name: 'Ana', last_name: 'Silva' }),
+              makePlayer({ first_name: 'Bruno', last_name: 'Lima' }),
+            ],
             notes: 'Bring balls',
             total_price: '300.00',
             start: '2030-01-09T18:00:00-03:00',
@@ -92,7 +95,7 @@ describe('Home · upcoming reservations', () => {
     expect(within(booking).getByText('Ibirapuera Tennis Center')).toBeInTheDocument()
     expect(
       within(booking).getByText(
-        'Doubles · Lighting · With ana@example.com, bruno@example.com',
+        'Doubles · Lighting · With Ana Silva, Bruno Lima',
       ),
     ).toBeInTheDocument()
     expect(within(booking).getByText('“Bring balls”')).toBeInTheDocument()
@@ -113,8 +116,8 @@ describe('Home · upcoming reservations', () => {
             id: 'as-guest',
             court: { ...makeReservation().court, name: 'Guest court' },
             role: 'guest',
-            primary_player: 'carla@example.com',
-            guests: ['player@example.com'],
+            primary_player: makePlayer({ first_name: 'Carla', last_name: 'Costa' }),
+            guests: [makePlayer({ first_name: 'Pat', last_name: 'Player' })],
             can_cancel: false,
           }),
           makeReservation({
@@ -137,7 +140,7 @@ describe('Home · upcoming reservations', () => {
     const guest = await within(section()).findByRole('article', { name: /Guest court/ })
     expect(within(guest).getByText('Guest')).toBeInTheDocument()
     expect(
-      within(guest).getByText('Singles · Booked by carla@example.com'),
+      within(guest).getByText('Singles · Booked by Carla Costa'),
     ).toBeInTheDocument()
     expect(
       within(guest).getByText(

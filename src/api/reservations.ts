@@ -26,6 +26,21 @@ export type ReservationRequest = {
   notes: string
 }
 
+/** How CourtControl shows a player outside their own profile (never an email). */
+export const playerSummarySchema = z.object({
+  id: z.string(),
+  first_name: z.string(),
+  last_name: z.string(),
+})
+
+export type PlayerSummary = z.infer<typeof playerSummarySchema>
+
+/** Display name for a PlayerSummary; falls back when both names are blank. */
+export function playerDisplayName(player: PlayerSummary): string {
+  const name = [player.first_name, player.last_name].filter(Boolean).join(' ').trim()
+  return name || 'Player'
+}
+
 const reservationSchema = z.object({
   id: z.string(),
   court: z.object({
@@ -41,11 +56,11 @@ const reservationSchema = z.object({
   state: z.string(),
   /** Relative to the signed-in user: "owner" (booked it) or "guest". */
   role: z.string(),
-  /** Email of the player who booked. */
-  primary_player: z.string(),
+  /** Player who booked (id + name; emails are never returned). */
+  primary_player: playerSummarySchema,
   includes_lighting: z.boolean(),
   total_price: z.string(),
-  guests: z.array(z.string()),
+  guests: z.array(playerSummarySchema),
   notes: z.string(),
   /** Whether the booker may cancel right now (club cancellation policy). */
   can_cancel: z.boolean(),

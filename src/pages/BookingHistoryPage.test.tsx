@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it } from 'vitest'
 
 import type { Reservation } from '@/api/reservations'
 import { BookingHistoryPage } from '@/pages/BookingHistoryPage'
-import { makeReservation, makeReservationPage } from '@/test/factories'
+import { makePlayer, makeReservation, makeReservationPage } from '@/test/factories'
 import { jsonResponse, mockFetch, requestedUrls } from '@/test/fetch'
 import { LocationProbe } from '@/test/LocationProbe'
 import { currentSearch, freezeDate, renderWithProviders } from '@/test/render'
@@ -35,7 +35,7 @@ const asGuest = makeReservation({
   id: 'guest',
   court: court('Center Court'),
   role: 'guest',
-  primary_player: 'carla@example.com',
+  primary_player: makePlayer({ first_name: 'Carla', last_name: 'Costa' }),
   state: 'cancelled',
   status: 'CANCELLED',
   start: '2029-12-20T10:00:00-03:00',

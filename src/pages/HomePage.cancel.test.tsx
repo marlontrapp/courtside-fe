@@ -5,7 +5,7 @@ import { beforeEach, describe, expect, it } from 'vitest'
 import { COURTS_QUERY_KEY } from '@/api/courts'
 import { RESERVATION_HISTORY_QUERY_KEY, type Reservation } from '@/api/reservations'
 import { HomePage } from '@/pages/HomePage'
-import { makeReservation, makeReservationPage } from '@/test/factories'
+import { makePlayer, makeReservation, makeReservationPage } from '@/test/factories'
 import { jsonResponse, mockFetch } from '@/test/fetch'
 import { freezeDate, renderWithProviders } from '@/test/render'
 
@@ -21,7 +21,10 @@ function mockApi(initial: Partial<Api> = {}) {
     list: initial.list ?? [
       makeReservation({
         id: 'guga',
-        guests: ['ana@example.com', 'bruno@example.com'],
+        guests: [
+          makePlayer({ first_name: 'Ana', last_name: 'Silva' }),
+          makePlayer({ first_name: 'Bruno', last_name: 'Lima' }),
+        ],
         cancellation_deadline: '2030-01-08T18:00:00-03:00',
       }),
     ],
@@ -80,7 +83,7 @@ describe('Cancelling a booking', () => {
           id: 'guest',
           court: { ...makeReservation().court, name: 'Guest court' },
           role: 'guest',
-          primary_player: 'carla@example.com',
+          primary_player: makePlayer({ first_name: 'Carla', last_name: 'Costa' }),
           can_cancel: false,
         }),
         makeReservation({
@@ -149,7 +152,7 @@ describe('Cancelling a booking', () => {
     ).toBeInTheDocument()
     expect(
       within(dialog).getByText(
-        '2 guests will be notified: ana@example.com, bruno@example.com.',
+        '2 guests will be notified: Ana Silva, Bruno Lima.',
       ),
     ).toBeInTheDocument()
     expect(

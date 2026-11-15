@@ -9,7 +9,7 @@ import {
   type ReservationRequest,
 } from '@/api/reservations'
 import { CourtsPage } from '@/pages/CourtsPage'
-import { makeCourt, makePage, makeReservation } from '@/test/factories'
+import { makeCourt, makePage, makePlayer, makeReservation } from '@/test/factories'
 import { jsonResponse, mockFetch } from '@/test/fetch'
 import { freezeDate, renderWithProviders } from '@/test/render'
 
@@ -44,7 +44,14 @@ function reservationFor(request: ReservationRequest, court: Court): Reservation 
     end: at(request.end_time, request.date),
     booking_type: request.booking_type,
     includes_lighting: request.includes_lighting,
-    guests: request.guests,
+    guests: request.guests.map((email, index) => {
+      const local = email.split('@')[0] || `guest${index + 1}`
+      return makePlayer({
+        id: `guest-${index + 1}`,
+        first_name: local.charAt(0).toUpperCase() + local.slice(1),
+        last_name: '',
+      })
+    }),
     notes: request.notes,
     // Consistent with can_cancel: still ahead of the frozen now (2030-01-08 12:00).
     cancellation_deadline: at('15:00', request.date),
@@ -224,7 +231,7 @@ describe('Booking a court', () => {
     )
     expect(within(confirmation).getByText('Today, 17:00–19:00')).toBeInTheDocument()
     expect(within(confirmation).getByText('Doubles')).toBeInTheDocument()
-    expect(within(confirmation).getByText('ana@example.com')).toBeInTheDocument()
+    expect(within(confirmation).getByText('Ana')).toBeInTheDocument()
     expect(within(confirmation).getByText(/free cancellation until/i)).toHaveTextContent(
       'Free cancellation until today, 15:00.',
     )

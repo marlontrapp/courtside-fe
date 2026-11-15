@@ -6,6 +6,7 @@ import {
   MAX_CANCEL_REASON_LENGTH,
   RESERVATIONS_QUERY_KEY,
   cancelReservation,
+  playerDisplayName,
   type Reservation,
 } from '@/api/reservations'
 import { useAuth } from '@/auth/auth-context'
@@ -130,7 +131,8 @@ function CancelDialog({ reservation, onClose, onCancelled }: CancelDialogProps) 
           <li>The court is released for other players right away.</li>
           {guests.length > 0 ? (
             <li>
-              {plural(guests.length, 'guest')} will be notified: {guests.join(', ')}.
+              {plural(guests.length, 'guest')} will be notified:{' '}
+              {guests.map(playerDisplayName).join(', ')}.
             </li>
           ) : null}
           {isAwaitingPayment(reservation) ? (

@@ -1,4 +1,4 @@
-import type { Reservation } from '@/api/reservations'
+import { playerDisplayName, type Reservation } from '@/api/reservations'
 import { BOOKING_TYPE_LABELS, endTimeFor, formatDuration } from '@/pages/courts/booking'
 import { clockTime, dayLabel, inSentence, slotDay, todayIn } from '@/pages/courts/format'
 
@@ -56,8 +56,10 @@ export function isAwaitingPayment(reservation: Reservation): boolean {
 
 /** Who else plays: the booker for a guest, the guests for the booker. */
 export function reservationPeople(reservation: Reservation): string | null {
-  if (isGuest(reservation)) return `Booked by ${reservation.primary_player}`
-  return reservation.guests.length ? `With ${reservation.guests.join(', ')}` : null
+  if (isGuest(reservation)) return `Booked by ${playerDisplayName(reservation.primary_player)}`
+  return reservation.guests.length
+    ? `With ${reservation.guests.map(playerDisplayName).join(', ')}`
+    : null
 }
 
 /**
